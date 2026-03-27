@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run package)",
+      "Bash(npm install*)",
+      "Bash(npm install --save*)",
+      "Bash(npm install --save-dev*)",
+      "Bash(electron-rebuild*)",
+      "Bash(ls *)",
+      "Bash(find src*)",
+      "Bash(cat src/*)",
+      "Bash(node --version)",
+      "Bash(npx electron --version)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(DROP TABLE*)",
+      "Bash(sqlite3 * DROP*)"
+    ]
+  }
+}

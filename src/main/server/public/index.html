@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>feast. Desk</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #FFFDF8; color: #1C1917; min-height: 100vh; }
+    .header { background: #FF3131; color: white; padding: 14px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+    .badge { background: rgba(255,255,255,0.25); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+    .content { padding: 16px; max-width: 640px; margin: 0 auto; }
+    .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+    .card-title { font-size: 11px; font-weight: 700; color: #78716C; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .btn { display: block; width: 100%; background: #FF3131; color: white; border: none; border-radius: 12px; padding: 14px 20px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; transition: background 0.15s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); background: #E02020; }
+    .btn.secondary { background: #F5F0EB; color: #1C1917; }
+    .btn.secondary:active { background: #E7E0D8; }
+    .btn.dark { background: #1C1917; }
+    .btn.dark:active { background: #374151; }
+    .btn.sm { padding: 10px 16px; font-size: 13px; border-radius: 10px; }
+    .btn.danger { background: #FEE2E2; color: #991B1B; }
+    .btn.danger:active { background: #FECACA; }
+    .btn.success { background: #DCFCE7; color: #166534; }
+    .status { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 10px; }
+    .status.connected { background: #DCFCE7; color: #166534; }
+    .status.disconnected { background: #FEE2E2; color: #991B1B; }
+    /* Floor tabs */
+    .floor-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+    .floor-tab { flex-shrink: 0; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 2px solid #E7E0D8; background: white; cursor: pointer; transition: all 0.15s; }
+    .floor-tab.active { background: #FF3131; color: white; border-color: #FF3131; }
+    /* Table grid */
+    .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .table-btn { background: white; border: 2px solid #E7E0D8; border-radius: 14px; padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.15s; font-weight: 700; font-size: 15px; }
+    .table-btn:active { transform: scale(0.95); }
+    .table-btn.occupied { background: #FFFBEB; border-color: #FCD34D; color: #92400E; }
+    .table-btn.selected { border-color: #FF3131; background: #FFF5F5; color: #FF3131; }
+    .table-btn-sub { font-size: 10px; font-weight: 500; color: #78716C; margin-top: 2px; }
+    /* Order items */
+    .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #F5F0EB; }
+    .item-row:last-child { border-bottom: none; }
+    .item-name { font-weight: 500; font-size: 14px; }
+    .item-price { color: #FF3131; font-weight: 600; font-size: 13px; }
+    .qty-badge { background: #1C1917; color: white; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; }
+    /* Menu */
+    .cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; }
+    .cat-tab { flex-shrink: 0; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1.5px solid #E7E0D8; background: white; cursor: pointer; }
+    .cat-tab.active { background: #1C1917; color: white; border-color: #1C1917; }
+    .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 13px 12px; border-radius: 12px; cursor: pointer; transition: background 0.15s; border: 1.5px solid transparent; }
+    .menu-item:active { background: #FFF5F5; border-color: #FF3131; transform: scale(0.98); }
+    .menu-item-name { font-weight: 500; font-size: 14px; }
+    .menu-item-price { font-weight: 700; color: #FF3131; font-size: 14px; }
+    /* Kitchen order cards */
+    .kitchen-card { background: white; border-radius: 16px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border-left: 4px solid #FF3131; }
+    .kitchen-card.done { border-left-color: #22C55E; opacity: 0.6; }
+    .kitchen-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .kitchen-table-name { font-weight: 700; font-size: 16px; }
+    .kitchen-time { font-size: 11px; color: #78716C; }
+    .kitchen-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #F5F0EB; font-size: 14px; }
+    .kitchen-item:last-of-type { border-bottom: none; }
+    .kitchen-item-new { color: #FF3131; font-weight: 600; }
+    /* Notification banner */
+    .notif { position: fixed; top: 60px; left: 0; right: 0; background: #1C1917; color: white; padding: 14px 20px; font-size: 14px; font-weight: 600; text-align: center; transform: translateY(-110%); transition: transform 0.3s; z-index: 200; }
+    .notif.show { transform: translateY(0); }
+    .notif.ready { background: #16A34A; }
+    /* Pages */
+    #page-select, #page-waiter, #page-kitchen { display: none; }
+    #page-select.active, #page-waiter.active, #page-kitchen.active { display: block; }
+    #page-select { text-align: center; padding: 48px 20px 20px; }
+    #page-select h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    #page-select p { color: #78716C; margin-bottom: 32px; font-size: 14px; }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 360px; margin: 0 auto; }
+    .role-card { background: white; border: 2px solid #E7E0D8; border-radius: 20px; padding: 28px 16px; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .role-card:active { transform: scale(0.97); border-color: #FF3131; }
+    .role-card .role-icon { font-size: 36px; margin-bottom: 10px; }
+    .role-card .role-name { font-size: 15px; font-weight: 700; }
+    .role-card .role-desc { font-size: 12px; color: #78716C; margin-top: 4px; }
+    select { width: 100%; padding: 12px; border-radius: 12px; border: 1.5px solid #E7E0D8; font-size: 14px; background: white; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🍽 feast. Desk</h1>
+    <span class="badge" id="role-badge">Select Role</span>
+  </div>
+  <div class="notif" id="notif"></div>
+
+  <div class="content">
+    <!-- Role selection -->
+    <div id="page-select">
+      <h2>Choose your role</h2>
+      <p>Connected to feast. Desk</p>
+      <div class="role-grid">
+        <div class="role-card" onclick="selectRole('waiter')">
+          <div class="role-icon">🛎</div>
+          <div class="role-name">Waiter</div>
+          <div class="role-desc">Take orders from tables</div>
+        </div>
+        <div class="role-card" onclick="selectRole('kitchen')">
+          <div class="role-icon">👨‍🍳</div>
+          <div class="role-name">Kitchen</div>
+          <div class="role-desc">See & manage orders</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waiter view -->
+    <div id="page-waiter">
+      <div class="card">
+        <span class="status disconnected" id="ws-status">Connecting…</span>
+        <div class="card-title">Select Floor</div>
+        <div class="floor-tabs" id="floor-tabs"></div>
+        <div class="card-title">Select Table</div>
+        <div class="table-grid" id="table-grid"></div>
+      </div>
+
+      <div id="order-section" style="display:none">
+        <div class="card">
+          <div class="card-title" id="order-title">Current Order</div>
+          <div id="order-items"></div>
+          <div id="order-ready-banner" style="display:none;margin-top:10px;padding:10px;background:#DCFCE7;border-radius:10px;color:#166534;font-weight:600;font-size:14px;text-align:center">
+            ✅ Kitchen says it's ready!
+          </div>
+        </div>
+        <div id="menu-section" class="card">
+          <div class="card-title">Add Items</div>
+          <div class="cat-tabs" id="cat-tabs"></div>
+          <div id="menu-items"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kitchen view -->
+    <div id="page-kitchen">
+      <div class="card" style="margin-bottom:10px">
+        <span class="status disconnected" id="kitchen-ws-status">Connecting…</span>
+        <div style="font-size:13px;color:#78716C">New orders appear automatically. Tap "Order Ready" when done.</div>
+      </div>
+      <div id="kitchen-orders"></div>
+      <div id="kitchen-empty" style="text-align:center;padding:40px 20px;color:#78716C;display:none">
+        <div style="font-size:40px;margin-bottom:12px">🍽</div>
+        <p style="font-weight:600">No open orders</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null
+    let role = null
+    let menu = null
+    let floors = []
+    let activeFloorId = null
+    let currentTableId = null
+    let currentTableName = ''
+    let currentOrderId = null
+    let activeCatIdx = 0
+    // kitchen state: map of tableId -> { tableName, orderId, items: [], time, done }
+    const kitchenOrders = new Map()
+
+    // ─── Role selection ───────────────────────────────────────────
+    function selectRole(r) {
+      role = r
+      document.getElementById('page-select').classList.remove('active')
+      document.getElementById('role-badge').textContent = r === 'waiter' ? '🛎 Waiter' : '👨‍🍳 Kitchen'
+      if (r === 'waiter') {
+        document.getElementById('page-waiter').classList.add('active')
+        initWaiter()
+      } else {
+        document.getElementById('page-kitchen').classList.add('active')
+        initKitchen()
+      }
+    }
+
+    // ─── Notification ──────────────────────────────────────────────
+    function showNotif(msg, type = '') {
+      const el = document.getElementById('notif')
+      el.textContent = msg
+      el.className = 'notif show' + (type ? ' ' + type : '')
+      clearTimeout(el._t)
+      el._t = setTimeout(() => el.classList.remove('show'), 3000)
+    }
+
+    // ─── WebSocket ─────────────────────────────────────────────────
+    function connectWS(onMsg, statusEl) {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+      ws = new WebSocket(`${proto}://${location.host}/ws?role=${role}`)
+      ws.onopen = () => {
+        if (statusEl) { statusEl.className = 'status connected'; statusEl.textContent = 'Connected' }
+      }
+      ws.onclose = () => {
+        if (statusEl) { statusEl.className = 'status disconnected'; statusEl.textContent = 'Reconnecting…' }
+        setTimeout(() => connectWS(onMsg, statusEl), 3000)
+      }
+      ws.onmessage = (e) => { try { onMsg(JSON.parse(e.data)) } catch {} }
+    }
+
+    // ─── Waiter ────────────────────────────────────────────────────
+    async function initWaiter() {
+      menu = await fetch('/api/menu').then(r => r.json()).catch(() => null)
+      await loadFloors()
+      connectWS(handleWaiterMsg, document.getElementById('ws-status'))
+    }
+
+    async function loadFloors() {
+      floors = await fetch('/api/floors').then(r => r.json()).catch(() => [])
+      const tabsEl = document.getElementById('floor-tabs')
+      if (!floors.length) {
+        tabsEl.innerHTML = '<p style="color:#78716C;font-size:13px">No floors configured</p>'
+        return
+      }
+      tabsEl.innerHTML = floors.map(f =>
+        `<button class="floor-tab${activeFloorId === f.id ? ' active' : ''}" onclick="selectFloor(${f.id})">${f.name}</button>`
+      ).join('')
+      if (!activeFloorId && floors.length) selectFloor(floors[0].id)
+    }
+
+    function selectFloor(floorId) {
+      activeFloorId = floorId
+      currentTableId = null
+      currentTableName = ''
+      document.getElementById('order-section').style.display = 'none'
+      // Update tab highlight
+      document.querySelectorAll('.floor-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === floors.find(f => f.id === floorId)?.name)
+      })
+      renderTables()
+    }
+
+    function renderTables() {
+      const floor = floors.find(f => f.id === activeFloorId)
+      const grid = document.getElementById('table-grid')
+      if (!floor || !floor.tables.length) {
+        grid.innerHTML = '<p style="color:#78716C;font-size:13px">No tables on this floor</p>'
+        return
+      }
+      grid.innerHTML = floor.tables.map(t => {
+        const cls = t.status === 'occupied' ? 'occupied' : t.status === 'checkout_pending' ? 'occupied' : ''
+        const isSelected = currentTableId == t.id
+        return `<div class="table-btn ${cls}${isSelected ? ' selected' : ''}" onclick="selectTable(${t.id},'${escStr(t.name)}')">
+          ${t.name}
+          <div class="table-btn-sub">${t.status === 'occupied' ? 'Occupied' : t.status === 'checkout_pending' ? 'Bill' : 'Free'}</div>
+        </div>`
+      }).join('')
+    }
+
+    async function selectTable(tableId, tableName) {
+      currentTableId = tableId
+      currentTableName = tableName
+      document.getElementById('order-title').textContent = `Table ${tableName}`
+      document.getElementById('order-ready-banner').style.display = 'none'
+      renderTables() // update selection highlight
+      await loadTableOrder()
+      document.getElementById('order-section').style.display = 'block'
+      renderMenu()
+      document.getElementById('order-section').scrollIntoView({ behavior: 'smooth' })
+    }
+
+    async function loadTableOrder() {
+      if (!currentTableId) return
+      const order = await fetch(`/api/orders/${currentTableId}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      if (order) {
+        currentOrderId = order.id
+        renderOrderItems(order.items || [])
+      } else {
+        currentOrderId = null
+        renderOrderItems([])
+      }
+    }
+
+    function renderOrderItems(items) {
+      const el = document.getElementById('order-items')
+      if (!items.length) {
+        el.innerHTML = '<p style="color:#78716C;font-size:13px;padding:4px 0">No items yet — add from the menu below</p>'
+        return
+      }
+      el.innerHTML = items.map(i =>
+        `<div class="item-row">
+          <span class="item-name">${i.menu_item_name}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="item-price">₺${(i.unit_price * i.quantity).toFixed(2)}</span>
+            <span class="qty-badge">×${i.quantity}</span>
+          </div>
+        </div>`
+      ).join('')
+    }
+
+    function renderMenu() {
+      if (!menu || !menu.content || !menu.content.categories) return
+      const cats = menu.content.categories
+      const catTabs = document.getElementById('cat-tabs')
+      catTabs.innerHTML = cats.map((c, i) =>
+        `<button class="cat-tab${activeCatIdx === i ? ' active' : ''}" onclick="selectCat(${i})">${c.name}</button>`
+      ).join('')
+      renderMenuItems(cats[activeCatIdx]?.items || [])
+    }
+
+    function selectCat(idx) {
+      activeCatIdx = idx
+      renderMenu()
+    }
+
+    function renderMenuItems(items) {
+      const el = document.getElementById('menu-items')
+      el.innerHTML = items.map(item =>
+        `<div class="menu-item" onclick="addItem('${escStr(item.id ?? item.name)}','${escStr(item.name)}',${item.price})">
+          <span class="menu-item-name">${item.name}</span>
+          <span class="menu-item-price">₺${parseFloat(item.price).toFixed(2)}</span>
+        </div>`
+      ).join('')
+    }
+
+    async function addItem(id, name, price) {
+      if (!currentTableId) { showNotif('Select a table first'); return }
+      const res = await fetch(`/api/orders/${currentTableId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menu_item_id: id, menu_item_name: name, unit_price: price, quantity: 1 })
+      })
+      if (res.ok) {
+        showNotif(`+ ${name}`)
+        await loadTableOrder()
+        // refresh floor tables (status may have changed)
+        const updated = await fetch('/api/floors').then(r => r.json()).catch(() => floors)
+        floors = updated
+        renderTables()
+      }
+    }
+
+    function handleWaiterMsg(msg) {
+      if (msg.type === 'order:updated' && msg.tableId == currentTableId) {
+        renderOrderItems(msg.items || [])
+      }
+      if (msg.type === 'order:done' && msg.tableId == currentTableId) {
+        document.getElementById('order-ready-banner').style.display = 'block'
+        showNotif(`✅ Table ${msg.tableName || currentTableName}: order is ready!`, 'ready')
+      }
+    }
+
+    // ─── Kitchen ───────────────────────────────────────────────────
+    async function initKitchen() {
+      // Load all open orders on connect
+      const orders = await fetch('/api/orders').then(r => r.json()).catch(() => [])
+      for (const o of orders) {
+        const detail = await fetch(`/api/orders/${o.table_id || ''}`).then(r => r.ok ? r.json() : null).catch(() => null)
+        if (detail && o.table_id) {
+          kitchenOrders.set(o.table_id, {
+            tableId: o.table_id,
+            tableName: o.table_name || `Table ${o.table_id}`,
+            orderId: o.id,
+            items: detail.items || [],
+            time: new Date(o.opened_at).toLocaleTimeString(),
+            done: false
+          })
+        }
+      }
+      renderKitchenOrders()
+      connectWS(handleKitchenMsg, document.getElementById('kitchen-ws-status'))
+    }
+
+    function renderKitchenOrders() {
+      const container = document.getElementById('kitchen-orders')
+      const empty = document.getElementById('kitchen-empty')
+      const active = [...kitchenOrders.values()].filter(o => !o.done)
+      const done = [...kitchenOrders.values()].filter(o => o.done)
+      const all = [...active, ...done]
+      if (!all.length) { container.innerHTML = ''; empty.style.display = 'block'; return }
+      empty.style.display = 'none'
+      container.innerHTML = all.map(o => `
+        <div class="kitchen-card${o.done ? ' done' : ''}" id="kcard-${o.tableId}">
+          <div class="kitchen-card-header">
+            <span class="kitchen-table-name">🪑 ${o.tableName}</span>
+            <span class="kitchen-time">${o.time}</span>
+          </div>
+          ${o.items.map(i => `
+            <div class="kitchen-item${i._new ? ' kitchen-item-new' : ''}">
+              <span>${i.menu_item_name}</span>
+              <span class="qty-badge">×${i.quantity}</span>
+            </div>
+          `).join('')}
+          ${!o.done ? `<button class="btn success sm" style="margin-top:12px" onclick="markOrderDone(${o.tableId})">✅ Order Ready</button>` : '<p style="color:#16A34A;font-weight:600;margin-top:10px;font-size:13px">✅ Marked ready</p>'}
+        </div>
+      `).join('')
+    }
+
+    function markOrderDone(tableId) {
+      const order = kitchenOrders.get(tableId)
+      if (!order) return
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'order:done', tableId, tableName: order.tableName, orderId: order.orderId }))
+      }
+      order.done = true
+      // Clear new flags
+      order.items.forEach(i => { i._new = false })
+      renderKitchenOrders()
+    }
+
+    function handleKitchenMsg(msg) {
+      if (msg.type === 'order:item-added') {
+        const { tableId, item, order_id } = msg
+        if (!kitchenOrders.has(tableId)) {
+          kitchenOrders.set(tableId, {
+            tableId,
+            tableName: item.table_name || `Table ${tableId}`,
+            orderId: order_id,
+            items: [],
+            time: new Date().toLocaleTimeString(),
+            done: false
+          })
+        }
+        const order = kitchenOrders.get(tableId)
+        if (order.done) order.done = false // re-open if new item added
+        order.orderId = order_id
+        // Add or update item
+        const existing = order.items.find(i => i.menu_item_name === item.menu_item_name)
+        if (existing) { existing.quantity += item.quantity; existing._new = true }
+        else order.items.push({ ...item, _new: true })
+        renderKitchenOrders()
+        showNotif(`+ ${item.menu_item_name} — ${order.tableName}`)
+      }
+    }
+
+    // ─── Utils ──────────────────────────────────────────────────────
+    function escStr(s) {
+      return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    }
+
+    // ─── Boot ───────────────────────────────────────────────────────
+    document.getElementById('page-select').classList.add('active')
+  </script>
+</body>
+</html>
