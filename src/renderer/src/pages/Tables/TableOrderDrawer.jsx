@@ -121,7 +121,8 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     for (const [itemId, qty] of dutchSelected.entries()) {
       const item = items.find((i) => i.id === itemId)
       if (item && !item.is_free && qty > 0) {
-        total += item.unit_price * qty * (1 - (item.discount_pct || 0) / 100)
+        const pct = discountPct > 0 ? discountPct : (item.discount_pct || 0)
+        total += item.unit_price * qty * (1 - pct / 100)
       }
     }
     setDutchBill(parseFloat(total.toFixed(2)))

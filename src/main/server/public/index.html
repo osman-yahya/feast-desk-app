@@ -15,12 +15,6 @@
     .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.4); flex-shrink: 0; }
     .ws-dot.online { background: #86efac; }
 
-    /* ── Notification banner ── */
-    .notif { position: fixed; top: 54px; left: 0; right: 0; background: #1C1917; color: white; padding: 14px 20px; font-size: 14px; font-weight: 600; text-align: center; transform: translateY(-110%); transition: transform 0.3s; z-index: 300; }
-    .notif.show { transform: translateY(0); }
-    .notif.ready { background: #16A34A; }
-    .notif.error { background: #DC2626; }
-
     /* ── Connection error banner ── */
     .conn-error { position: fixed; top: 54px; left: 0; right: 0; background: #DC2626; color: white; padding: 10px 16px; font-size: 13px; font-weight: 600; text-align: center; z-index: 260; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
@@ -182,8 +176,6 @@
   <div class="ws-dot" id="ws-dot"></div>
   <span class="badge" id="role-badge">Select Role</span>
 </div>
-
-<div class="notif" id="notif"></div>
 
 <!-- Connection error banner -->
 <div id="conn-error-banner" class="conn-error" style="display:none">
@@ -426,12 +418,8 @@ function selectRole(r) {
 // ══════════════════════════════════════════════════════════════════════
 //  NOTIFICATIONS
 // ══════════════════════════════════════════════════════════════════════
-function showNotif(msg, type) {
-  const el = document.getElementById('notif')
-  el.textContent = msg
-  el.className = 'notif show' + (type ? ' ' + type : '')
-  clearTimeout(el._t)
-  el._t = setTimeout(() => el.classList.remove('show'), 3500)
+function showNotif() {
+  // Removed — kitchen uses polling, waiter uses ready-banner + badges
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -823,9 +811,9 @@ function addReadyItem(tableId, tableName) {
   readyList.push({ id: Date.now(), tableId, tableName, time: new Date().toLocaleTimeString() })
   updateReadyBadge()
   if (currentTab === 'ready') renderReadyList()
-  showReadyBanner(tableName)
-  clearTimeout(window._readyBannerTimer)
-  window._readyBannerTimer = setTimeout(dismissReadyBanner, 8000)
+  // Show persistent banner — stays until user dismisses or visits Ready tab
+  const count = readyList.length
+  showReadyBanner(count === 1 ? tableName : `${count} tables ready`)
 }
 
 function showReadyBanner(tableName) {
@@ -869,6 +857,8 @@ function dismissReady(id) {
   readyList = readyList.filter(r => r.id !== id)
   updateReadyBadge()
   renderReadyList()
+  if (readyList.length === 0) dismissReadyBanner()
+  else showReadyBanner(readyList.length === 1 ? readyList[0].tableName : `${readyList.length} tables ready`)
 }
 
 // ══════════════════════════════════════════════════════════════════════

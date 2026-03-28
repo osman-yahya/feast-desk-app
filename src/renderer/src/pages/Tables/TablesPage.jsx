@@ -25,6 +25,17 @@ export function TablesPage({ editorMode: editorModeProp = false }) {
     loadFloors()
   }, [])
 
+  // Refresh table statuses when waiter/kitchen activity changes order state
+  useEffect(() => {
+    if (!activeFloorId) return
+    const unlisten = window.feastAPI.on('server:message', (msg) => {
+      if (msg.type === 'order:updated' || msg.type === 'order:paid') {
+        loadFloor(activeFloorId)
+      }
+    })
+    return () => unlisten?.()
+  }, [activeFloorId])
+
   async function handleAddFloor() {
     if (!newFloorName.trim()) return
     await createFloor(newFloorName.trim())

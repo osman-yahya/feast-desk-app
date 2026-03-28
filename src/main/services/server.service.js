@@ -7,6 +7,7 @@ let httpServer = null
 let wss = null
 let localIP = null
 let serverPort = null
+let mainWindowRef = null
 
 // Track connected clients by role
 const clients = { waiter: new Set(), kitchen: new Set() }
@@ -26,6 +27,7 @@ export async function startServer(port, app, mainWindow) {
 
   serverPort = port || 3737
   localIP = getLocalIP()
+  mainWindowRef = mainWindow
 
   httpServer = createServer(app)
   wss = new WebSocketServer({ server: httpServer, path: '/ws' })
@@ -95,6 +97,10 @@ export function broadcastToAll(message) {
   const raw = JSON.stringify(message)
   for (const ws of [...clients.waiter, ...clients.kitchen]) {
     if (ws.readyState === 1) ws.send(raw)
+  }
+  // Also forward to the Electron host renderer (not a WS client)
+  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+    mainWindowRef.webContents.send('server:message', message)
   }
 }
 
