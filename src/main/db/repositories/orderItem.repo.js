@@ -7,6 +7,14 @@ export const orderItemRepo = {
 
   add(orderId, item) {
     const db = getDb()
+    const existing = db
+      .prepare('SELECT * FROM order_items WHERE order_id = ? AND menu_item_id = ? AND is_free = 0 AND is_paid_partial = 0')
+      .get(orderId, item.menu_item_id)
+    if (existing) {
+      const newQty = existing.quantity + (item.quantity || 1)
+      db.prepare('UPDATE order_items SET quantity = ? WHERE id = ?').run(newQty, existing.id)
+      return db.prepare('SELECT * FROM order_items WHERE id = ?').get(existing.id)
+    }
     const result = db
       .prepare(
         `INSERT INTO order_items

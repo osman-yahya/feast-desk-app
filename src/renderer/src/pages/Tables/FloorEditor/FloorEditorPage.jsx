@@ -1,117 +1,115 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Check, X, Plus, Trash2, Square, Minus, AlignLeft } from 'lucide-react'
+import { Check, X, Plus, Trash2, Square, Minus, AlignLeft, Pencil, Eraser } from 'lucide-react'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Modal } from '../../../components/ui/Modal.jsx'
 import { useTableStore } from '../../../store/useTableStore.js'
 import { useToast } from '../../../components/ui/Toast.jsx'
 
 const CELL = 56
-const COLS = 20
-const ROWS = 14
-const WALL_ANGLES = [
-  { value: 0,  label: '—' },
-  { value: 90, label: '|' }
+const DEFAULT_COLS = 30
+const DEFAULT_ROWS = 20
+const WALL_COLOR = '#94A3B8'   // slate-400 — lighter than the old #374151
+const TOOLS = [
+  { id: 'table',  icon: Square,    label: 'Table'  },
+  { id: 'wall',   icon: Minus,     label: 'Wall'   },
+  { id: 'brush',  icon: Pencil,    label: 'Brush'  },
+  { id: 'eraser', icon: Eraser,    label: 'Eraser' },
+  { id: 'label',  icon: AlignLeft, label: 'Label'  },
 ]
 
-const TOOLS = [
-  { id: 'table', icon: Square, label: 'Table' },
-  { id: 'wall', icon: Minus, label: 'Wall' },
-  { id: 'label', icon: AlignLeft, label: 'Label' }
-]
+function getLabelFontSize(text) {
+  const len = (text || '').length
+  if (len <= 4)  return 11
+  if (len <= 8)  return 9
+  if (len <= 14) return 7
+  return 6
+}
 
 export function FloorEditorPage({ onClose }) {
-  const { floors, activeFloorId, tables, floorElements, loadFloor, upsertTable, deleteTable, saveFloorElements } = useTableStore()
+  const { floors, activeFloorId, tables, floorElements, upsertTable, deleteTable, saveFloorElements } = useTableStore()
   const toast = useToast()
 
-  const [tool, setTool] = useState('table')
+  const [gridCols, setGridCols] = useState(DEFAULT_COLS)
+  const [gridRows, setGridRows] = useState(DEFAULT_ROWS)
+  const colsRef = useRef(DEFAULT_COLS)
+  const rowsRef = useRef(DEFAULT_ROWS)
+
+  const [tool, setTool]         = useState('table')
   const [elements, setElements] = useState([])
   const [localTables, setLocalTables] = useState([])
+  const [isDirty, setIsDirty]   = useState(false)
+  const [selected, setSelected] = useState(null) // { type: 'table'|'element', id: string }
+
+  // Modals
   const [showTableModal, setShowTableModal] = useState(false)
   const [showLabelModal, setShowLabelModal] = useState(false)
   const [pendingCell, setPendingCell] = useState(null)
   const [tableName, setTableName] = useState('')
-  const [tableW, setTableW] = useState(2)
-  const [tableH, setTableH] = useState(2)
-  const [wallAngle, setWallAngle] = useState(0)
+  const [tableW, setTableW]     = useState(2)
+  const [tableH, setTableH]     = useState(2)
   const [labelText, setLabelText] = useState('')
-  const [selected, setSelected] = useState(null) // { type: 'table'|'element', id }
-  const [isDirty, setIsDirty] = useState(false)
 
-  // Wall drag state
-  const [wallDragStart, setWallDragStart] = useState(null)
-  const [wallPreviewEnd, setWallPreviewEnd] = useState(null)
-  const isDraggingWall = useRef(false)
-  const dragMoved = useRef(false)
+  // Drag system:
+  //   dragRef  – mutable object updated synchronously during pointer events (no re-render)
+  //   dragRender – state snapshot used only for rendering the drag preview
+  const containerRef = useRef(null)
+  const dragRef      = useRef(null)   // { type, ...currentData }
+  const [dragRender, setDragRender] = useState(null)
 
+  // Mirror for reading latest localTables inside commitMove without stale closure
+  const localTablesRef = useRef([])
+  useEffect(() => { localTablesRef.current = localTables }, [localTables])
+
+  // ── Init: load floor data + grid settings once on mount ──────────
   useEffect(() => {
     setLocalTables([...tables])
     setElements([...floorElements])
-  }, [tables, floorElements])
+    window.feastAPI.settings.getAll().then(s => {
+      const c = Math.max(10, Math.min(60, parseInt(s.grid_cols) || DEFAULT_COLS))
+      const r = Math.max(8, Math.min(40, parseInt(s.grid_rows) || DEFAULT_ROWS))
+      setGridCols(c)
+      setGridRows(r)
+      colsRef.current = c
+      rowsRef.current = r
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally empty: prevents elements from resetting when tables state changes
 
-  // Convert mouse event to grid cell
-  function eventToCell(e) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const col = Math.min(Math.max(Math.floor((e.clientX - rect.left) / CELL), 0), COLS - 1)
-    const row = Math.min(Math.max(Math.floor((e.clientY - rect.top) / CELL), 0), ROWS - 1)
+  // ── Grid coordinate helper ─────────────────────────────────────────
+  function getCellFromEvent(e) {
+    const container = containerRef.current
+    if (!container) return { col: 0, row: 0 }
+    const rect = container.getBoundingClientRect()
+    const col = Math.min(Math.max(Math.floor((e.clientX - rect.left) / CELL), 0), colsRef.current - 1)
+    const row = Math.min(Math.max(Math.floor((e.clientY - rect.top)  / CELL), 0), rowsRef.current - 1)
     return { col, row }
   }
 
-  function handleSvgMouseDown(e) {
-    if (tool !== 'wall') return
-    const { col, row } = eventToCell(e)
-    isDraggingWall.current = true
-    dragMoved.current = false
-    setWallDragStart({ col, row })
-    setWallPreviewEnd({ col, row })
-  }
+  // ── Container mouse handlers ────────────────────────────────────────
+  function handleContainerMouseDown(e) {
+    if (dragRef.current) return
+    const { col, row } = getCellFromEvent(e)
 
-  function handleSvgMouseMove(e) {
-    if (!isDraggingWall.current || tool !== 'wall') return
-    const { col, row } = eventToCell(e)
-    setWallPreviewEnd({ col, row })
-    dragMoved.current = true
-  }
-
-  function handleSvgMouseUp() {
-    if (!isDraggingWall.current || tool !== 'wall') return
-    isDraggingWall.current = false
-    if (dragMoved.current && wallDragStart && wallPreviewEnd) {
-      placeWallFromDrag(wallDragStart, wallPreviewEnd)
+    if (tool === 'wall') {
+      dragRef.current = { type: 'wall', startCol: col, startRow: row, endCol: col, endRow: row }
+      setDragRender({ type: 'wall', startCol: col, startRow: row, endCol: col, endRow: row })
+      return
     }
-    setWallDragStart(null)
-    setWallPreviewEnd(null)
-  }
 
-  function placeWallFromDrag(start, end) {
-    const dCol = end.col - start.col
-    const dRow = end.row - start.row
-    const width = Math.max(Math.abs(dCol), Math.abs(dRow), 1) + 1
-    setElements((prev) => [...prev, {
-      id: `new-${Date.now()}`,
-      floor_id: activeFloorId,
-      type: 'wall',
-      grid_col: start.col,
-      grid_row: start.row,
-      width,
-      height: 1,
-      angle: wallAngle,
-      label_text: null,
-      created_at: Date.now()
-    }])
-    setIsDirty(true)
-  }
+    if (tool === 'brush') {
+      const key = `${col},${row}`
+      dragRef.current = { type: 'brush', visited: new Set([key]), cells: [{ col, row }] }
+      setDragRender({ type: 'brush' })
+      return
+    }
 
-  function handleSvgClick(e) {
-    // Wall is handled by drag events; ignore click for wall
-    if (tool === 'wall') return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const col = Math.floor((e.clientX - rect.left) / CELL)
-    const row = Math.floor((e.clientY - rect.top) / CELL)
-    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return
-    handleCellClick(col, row)
-  }
+    if (tool === 'eraser') {
+      dragRef.current = { type: 'eraser', visited: new Set([`${col},${row}`]) }
+      eraseAtCell(col, row)
+      return
+    }
 
-  function handleCellClick(col, row) {
+    // Empty cell click – open placement modal
     if (tool === 'table') {
       setPendingCell({ col, row })
       setTableName('')
@@ -123,17 +121,197 @@ export function FloorEditorPage({ onClose }) {
       setLabelText('')
       setShowLabelModal(true)
     }
+    setSelected(null)
   }
 
+  function handleContainerMouseMove(e) {
+    const dr = dragRef.current
+    if (!dr) return
+    const { col, row } = getCellFromEvent(e)
+
+    if (dr.type === 'wall') {
+      dr.endCol = col
+      dr.endRow = row
+      setDragRender({ ...dr })
+      return
+    }
+    if (dr.type === 'brush') {
+      const key = `${col},${row}`
+      if (!dr.visited.has(key)) {
+        dr.visited.add(key)
+        dr.cells.push({ col, row })
+        setDragRender({ type: 'brush', count: dr.cells.length })
+      }
+      return
+    }
+    if (dr.type === 'eraser') {
+      const key = `${col},${row}`
+      if (!dr.visited.has(key)) {
+        dr.visited.add(key)
+        eraseAtCell(col, row)
+      }
+      return
+    }
+    if (dr.type === 'move') {
+      const newCol = Math.min(Math.max(col - dr.offsetCol, 0), colsRef.current - 1)
+      const newRow = Math.min(Math.max(row - dr.offsetRow, 0), rowsRef.current - 1)
+      dr.col = newCol
+      dr.row = newRow
+      setDragRender({ ...dr })
+      return
+    }
+    if (dr.type === 'resize') {
+      const dCol = col - dr.startCol
+      const dRow = row - dr.startRow
+      dr.currentW = Math.min(Math.max(dr.origW + dCol, 1), 10)
+      dr.currentH = Math.min(Math.max(dr.origH + dRow, 1), 10)
+      setDragRender({ ...dr })
+      return
+    }
+  }
+
+  function handleContainerMouseUp() {
+    const dr = dragRef.current
+    if (!dr) return
+    dragRef.current = null
+    setDragRender(null)
+
+    if (dr.type === 'wall') {
+      const moved = dr.endCol !== dr.startCol || dr.endRow !== dr.startRow
+      if (moved) placeWallFromDrag(dr)
+      return
+    }
+    if (dr.type === 'brush') {
+      if (dr.cells.length > 0) {
+        const now = Date.now()
+        const newWalls = dr.cells.map((c, i) => ({
+          id: `new-${now}-${i}`,
+          floor_id: activeFloorId,
+          type: 'wall',
+          grid_col: c.col,
+          grid_row: c.row,
+          width: 1,
+          height: 1,
+          angle: 0,
+          label_text: null,
+          created_at: now
+        }))
+        setElements(prev => [...prev, ...newWalls])
+        setIsDirty(true)
+      }
+      return
+    }
+    if (dr.type === 'eraser') {
+      return
+    }
+    if (dr.type === 'move') {
+      if (dr.col !== dr.origCol || dr.row !== dr.origRow) {
+        commitMove(dr.id, dr.itemType, dr.col, dr.row)
+      }
+      return
+    }
+    if (dr.type === 'resize') {
+      commitResize(dr.id, dr.currentW, dr.currentH)
+      return
+    }
+  }
+
+  // ── Element-level mouse handlers (stopPropagation keeps container clean) ──
+  function handleElementMouseDown(e, itemType, id, origCol, origRow) {
+    e.stopPropagation()
+    if (e.button !== 0) return
+    if (dragRef.current)  return
+    const { col, row } = getCellFromEvent(e)
+    const offsetCol = col - origCol
+    const offsetRow = row - origRow
+    dragRef.current = { type: 'move', id: String(id), itemType, origCol, origRow, offsetCol, offsetRow, col: origCol, row: origRow }
+    setDragRender({ ...dragRef.current })
+    setSelected({ type: itemType, id: String(id) })
+  }
+
+  function handleResizeMouseDown(e, tblId, origW, origH) {
+    e.stopPropagation()
+    if (e.button !== 0) return
+    if (dragRef.current)  return
+    const { col, row } = getCellFromEvent(e)
+    dragRef.current = { type: 'resize', id: tblId, origW, origH, currentW: origW, currentH: origH, startCol: col, startRow: row }
+    setDragRender({ ...dragRef.current })
+    setSelected({ type: 'table', id: String(tblId) })
+  }
+
+  // ── Erase walls that overlap a grid cell ──────────────────────────
+  function eraseAtCell(col, row) {
+    setElements(prev => prev.filter(el => {
+      if (el.type !== 'wall') return true
+      if (!el.angle) {
+        // Horizontal: row must match, col must be within [gridCol, gridCol+width)
+        return !(el.grid_row === row && col >= el.grid_col && col < el.grid_col + (el.width || 1))
+      } else {
+        // Vertical (90°): col must match, row must be within [gridRow, gridRow+width)
+        return !(el.grid_col === col && row >= el.grid_row && row < el.grid_row + (el.width || 1))
+      }
+    }))
+    setIsDirty(true)
+  }
+
+  // ── Commit helpers ─────────────────────────────────────────────────
+  function placeWallFromDrag(dr) {
+    const dCol = dr.endCol - dr.startCol
+    const dRow = dr.endRow - dr.startRow
+    // Auto-detect direction from drag: more vertical movement → vertical wall
+    const isVertical = Math.abs(dRow) > Math.abs(dCol)
+    const angle  = isVertical ? 90 : 0
+    const width  = isVertical ? Math.abs(dRow) + 1 : Math.abs(dCol) + 1
+    const gridCol = Math.min(dr.startCol, dr.endCol)
+    const gridRow = Math.min(dr.startRow, dr.endRow)
+    setElements(prev => [...prev, {
+      id: `new-${Date.now()}`,
+      floor_id: activeFloorId,
+      type: 'wall',
+      grid_col: gridCol,
+      grid_row: gridRow,
+      width,
+      height: 1,
+      angle,
+      label_text: null,
+      created_at: Date.now()
+    }])
+    setIsDirty(true)
+  }
+
+  function commitMove(id, itemType, col, row) {
+    if (itemType === 'table') {
+      const tbl = localTablesRef.current.find(t => String(t.id) === id)
+      if (!tbl) return
+      const updated = { ...tbl, grid_col: col, grid_row: row }
+      upsertTable(updated) // fire-and-forget; store update doesn't reset localTables (empty-dep effect)
+      setLocalTables(prev => prev.map(t => String(t.id) === id ? updated : t))
+      setIsDirty(true)
+    } else {
+      setElements(prev => prev.map(el => String(el.id) === id ? { ...el, grid_col: col, grid_row: row } : el))
+      setIsDirty(true)
+    }
+  }
+
+  function commitResize(id, w, h) {
+    const tbl = localTablesRef.current.find(t => t.id === id)
+    if (!tbl) return
+    const updated = { ...tbl, width: w, height: h }
+    upsertTable(updated)
+    setLocalTables(prev => prev.map(t => t.id === id ? updated : t))
+    setIsDirty(true)
+  }
+
+  // ── Placement helpers ──────────────────────────────────────────────
   function handlePlaceLabelConfirm() {
     if (!labelText.trim() || !pendingCell) return
-    setElements((prev) => [...prev, {
+    setElements(prev => [...prev, {
       id: `new-${Date.now()}`,
       floor_id: activeFloorId,
       type: 'label',
       grid_col: pendingCell.col,
       grid_row: pendingCell.row,
-      width: 3,
+      width: 1,
       height: 1,
       angle: 0,
       label_text: labelText.trim(),
@@ -155,7 +333,11 @@ export function FloorEditorPage({ onClose }) {
       height: tableH
     }
     const tbl = await upsertTable(data)
-    setLocalTables((prev) => [...prev, tbl])
+    // Add to local state directly; the empty-dep useEffect won't re-init so no flicker
+    setLocalTables(prev => {
+      const exists = prev.find(t => t.id === tbl.id)
+      return exists ? prev : [...prev, tbl]
+    })
     setShowTableModal(false)
     setIsDirty(true)
     toast(`Table "${tableName}" added`, 'success')
@@ -164,11 +346,11 @@ export function FloorEditorPage({ onClose }) {
   async function handleDeleteSelected() {
     if (!selected) return
     if (selected.type === 'table') {
-      await deleteTable(selected.id)
-      setLocalTables((prev) => prev.filter((t) => t.id !== selected.id))
+      await deleteTable(parseInt(selected.id))
+      setLocalTables(prev => prev.filter(t => String(t.id) !== selected.id))
       toast('Table removed', 'info')
     } else {
-      setElements((prev) => prev.filter((e) => String(e.id) !== String(selected.id)))
+      setElements(prev => prev.filter(el => String(el.id) !== selected.id))
     }
     setSelected(null)
     setIsDirty(true)
@@ -182,26 +364,44 @@ export function FloorEditorPage({ onClose }) {
     onClose()
   }
 
-  // Compute wall preview dimensions for rendering
-  const wallPreview = isDraggingWall.current && wallDragStart && wallPreviewEnd
-    ? (() => {
-        const dCol = wallPreviewEnd.col - wallDragStart.col
-        const dRow = wallPreviewEnd.row - wallDragStart.row
-        const width = (Math.max(Math.abs(dCol), Math.abs(dRow), 1) + 1) * CELL
-        return { left: wallDragStart.col * CELL, top: wallDragStart.row * CELL, width }
-      })()
-    : null
+  // ── Render helpers ─────────────────────────────────────────────────
+  function getElementDisplayPos(id, origCol, origRow) {
+    if (dragRender?.type === 'move' && dragRender.id === String(id)) {
+      return { col: dragRender.col, row: dragRender.row }
+    }
+    return { col: origCol, row: origRow }
+  }
+
+  function getTableDisplaySize(id, origW, origH) {
+    if (dragRender?.type === 'resize' && dragRender.id === id) {
+      return { w: dragRender.currentW, h: dragRender.currentH }
+    }
+    return { w: origW, h: origH }
+  }
+
+  const wallPreview = dragRender?.type === 'wall' ? (() => {
+    const { startCol, startRow, endCol, endRow } = dragRender
+    const dC = endCol - startCol
+    const dR = endRow - startRow
+    const isVert  = Math.abs(dR) > Math.abs(dC)
+    const width   = ((isVert ? Math.abs(dR) : Math.abs(dC)) + 1) * CELL
+    const left    = Math.min(startCol, endCol) * CELL
+    const top     = Math.min(startRow, endRow) * CELL
+    const angle   = isVert ? 90 : 0
+    return { left, top, width, angle }
+  })() : null
+
+  const isGrabbing = !!dragRender && (dragRender.type === 'move' || dragRender.type === 'resize')
+  const floorName = floors.find(f => f.id === activeFloorId)?.name
 
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Toolbar */}
+      {/* ── Toolbar ── */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="font-bold text-xl text-ink">Edit Layout</h1>
-          {floors.find((f) => f.id === activeFloorId)?.name && (
-            <span className="px-2 py-0.5 bg-brand-pale text-brand rounded-pill text-xs font-semibold">
-              {floors.find((f) => f.id === activeFloorId).name}
-            </span>
+          {floorName && (
+            <span className="px-2.5 py-1 bg-brand-pale text-brand rounded-pill text-xs font-semibold">{floorName}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -210,35 +410,23 @@ export function FloorEditorPage({ onClose }) {
         </div>
       </div>
 
-      {/* Tools row */}
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-          {TOOLS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTool(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${tool === t.id ? 'bg-white shadow text-ink' : 'text-ink-muted hover:text-ink'}`}
-            >
-              <t.icon size={13} />
-              {t.label}
+      {/* ── Tools row ── */}
+      <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1.5">
+          {TOOLS.map(t => (
+            <button key={t.id} onClick={() => setTool(t.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all
+                ${tool === t.id ? 'bg-white shadow text-ink' : 'text-ink-muted hover:text-ink'}`}>
+              <t.icon size={15} />{t.label}
             </button>
           ))}
         </div>
 
-        {tool === 'wall' && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-ink-muted font-medium">Direction:</span>
-            {WALL_ANGLES.map((a) => (
-              <button key={a.value} onClick={() => setWallAngle(a.value)}
-                className={`px-3 py-1 rounded-lg text-base font-bold transition-colors ${wallAngle === a.value ? 'bg-brand text-white' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {tool === 'wall' && (
-          <span className="text-xs text-ink-muted italic">Click and drag to draw walls</span>
+        {tool === 'wall'   && <span className="text-xs text-ink-muted italic">Drag to draw — direction is auto-detected from your drag</span>}
+        {tool === 'brush'  && <span className="text-xs text-ink-muted italic">Paint wall cells by dragging over the grid</span>}
+        {tool === 'eraser' && <span className="text-xs text-ink-muted italic">Drag over walls to erase them</span>}
+        {(tool === 'table' || tool === 'label') && (
+          <span className="text-xs text-ink-muted italic">Click to place · drag to move · drag corner handle to resize tables</span>
         )}
 
         {selected && (
@@ -246,79 +434,83 @@ export function FloorEditorPage({ onClose }) {
         )}
       </div>
 
-      {/* Editor grid */}
+      {/* ── Grid ── */}
       <div className="flex-1 overflow-auto bg-gray-50 rounded-2xl border border-border-warm p-4">
         <div
-          className="relative"
+          ref={containerRef}
+          className="relative select-none"
           style={{
-            width: COLS * CELL, height: ROWS * CELL, minWidth: COLS * CELL,
-            cursor: tool === 'wall' ? 'crosshair' : 'crosshair'
+            width: gridCols * CELL,
+            height: gridRows * CELL,
+            minWidth: gridCols * CELL,
+            cursor: (tool === 'wall' || tool === 'brush') ? 'crosshair'
+                  : tool === 'eraser' ? 'cell'
+                  : isGrabbing ? 'grabbing' : 'default'
           }}
+          onMouseDown={handleContainerMouseDown}
+          onMouseMove={handleContainerMouseMove}
+          onMouseUp={handleContainerMouseUp}
+          onMouseLeave={handleContainerMouseUp}
         >
-          {/* Grid dots — non-interactive */}
-          <svg className="absolute inset-0 pointer-events-none" width={COLS * CELL} height={ROWS * CELL}>
-            {Array.from({ length: ROWS + 1 }).map((_, r) =>
-              Array.from({ length: COLS + 1 }).map((_, c) => (
+          {/* Dot grid (non-interactive) */}
+          <svg className="absolute inset-0 pointer-events-none" width={gridCols * CELL} height={gridRows * CELL}>
+            {Array.from({ length: gridRows + 1 }).map((_, r) =>
+              Array.from({ length: gridCols + 1 }).map((_, c) => (
                 <circle key={`${r}-${c}`} cx={c * CELL} cy={r * CELL} r={1.5} fill="#E7E0D8" />
               ))
             )}
           </svg>
 
-          {/* Click/drag-capture SVG */}
-          <svg
-            className="absolute inset-0"
-            width={COLS * CELL}
-            height={ROWS * CELL}
-            onClick={handleSvgClick}
-            onMouseDown={handleSvgMouseDown}
-            onMouseMove={handleSvgMouseMove}
-            onMouseUp={handleSvgMouseUp}
-            onMouseLeave={handleSvgMouseUp}
-          >
-            <rect width={COLS * CELL} height={ROWS * CELL} fill="transparent" />
-          </svg>
-
-          {/* Wall drag preview */}
+          {/* Wall drag preview (direction auto-detected from drag) */}
           {wallPreview && (
-            <div
-              className="absolute rounded-sm pointer-events-none"
+            <div className="absolute rounded-sm pointer-events-none"
               style={{
-                left: wallPreview.left,
-                top: wallPreview.top,
-                width: wallPreview.width,
-                height: 8,
-                background: '#FF3131',
-                opacity: 0.5,
-                transform: wallAngle ? `rotate(${wallAngle}deg)` : undefined,
-                transformOrigin: '0 50%'
+                left: wallPreview.left, top: wallPreview.top,
+                width: wallPreview.width, height: CELL,
+                background: '#FF3131', opacity: 0.5,
+                transform: wallPreview.angle ? `rotate(${wallPreview.angle}deg)` : undefined,
+                transformOrigin: '0 0'
               }}
             />
           )}
 
-          {/* Elements */}
-          {elements.map((el) => {
-            const isSelected = selected?.id === String(el.id)
+          {/* ── Floor elements (walls & labels) ── */}
+          {elements.map(el => {
+            const elId = String(el.id)
+            const isSelected = selected?.id === elId
+            const pos = getElementDisplayPos(el.id, el.grid_col, el.grid_row)
+
             if (el.type === 'wall') {
               return (
                 <div key={el.id}
-                  onClick={(e) => { e.stopPropagation(); setSelected({ type: 'element', id: String(el.id) }) }}
-                  className={`absolute rounded-sm cursor-pointer transition-all ${isSelected ? 'ring-2 ring-brand' : ''}`}
+                  onMouseDown={e => handleElementMouseDown(e, 'element', el.id, el.grid_col, el.grid_row)}
+                  className={`absolute rounded-sm cursor-grab active:cursor-grabbing ${isSelected ? 'ring-2 ring-brand' : ''}`}
                   style={{
-                    left: el.grid_col * CELL, top: el.grid_row * CELL,
-                    width: el.width * CELL, height: 8,
-                    background: isSelected ? '#FF3131' : '#374151',
+                    left: pos.col * CELL, top: pos.row * CELL,
+                    width: el.width * CELL, height: CELL,
+                    background: isSelected ? '#FF3131' : WALL_COLOR,
                     transform: el.angle ? `rotate(${el.angle}deg)` : undefined,
-                    transformOrigin: '0 50%'
+                    transformOrigin: '0 0',
+                    zIndex: isSelected ? 10 : 2
                   }}
                 />
               )
             }
             if (el.type === 'label') {
+              const fs = getLabelFontSize(el.label_text)
               return (
                 <div key={el.id}
-                  onClick={(e) => { e.stopPropagation(); setSelected({ type: 'element', id: String(el.id) }) }}
-                  className={`absolute flex items-center justify-center text-xs font-bold text-ink-muted cursor-pointer border border-dashed rounded ${isSelected ? 'border-brand text-brand' : 'border-gray-300'}`}
-                  style={{ left: el.grid_col * CELL, top: el.grid_row * CELL, width: el.width * CELL, height: el.height * CELL }}
+                  onMouseDown={e => handleElementMouseDown(e, 'element', el.id, el.grid_col, el.grid_row)}
+                  className={`absolute flex items-center justify-center cursor-grab active:cursor-grabbing
+                    border border-dashed rounded-lg leading-tight text-center overflow-hidden
+                    ${isSelected ? 'border-brand text-brand bg-brand-pale' : 'border-gray-400 text-ink-muted bg-white/80'}`}
+                  style={{
+                    left: pos.col * CELL + 2, top: pos.row * CELL + 2,
+                    width: CELL - 4, height: CELL - 4,
+                    fontSize: fs, fontWeight: 700,
+                    wordBreak: 'break-word', padding: 2,
+                    zIndex: isSelected ? 10 : 3
+                  }}
                 >
                   {el.label_text}
                 </div>
@@ -327,54 +519,71 @@ export function FloorEditorPage({ onClose }) {
             return null
           })}
 
-          {/* Tables */}
-          {localTables.map((tbl) => {
-            const isSelected = selected?.id === tbl.id
+          {/* ── Tables ── */}
+          {localTables.map(tbl => {
+            const tblId = String(tbl.id)
+            const isSelected = selected?.id === tblId
+            const pos  = getElementDisplayPos(tbl.id, tbl.grid_col, tbl.grid_row)
+            const size = getTableDisplaySize(tbl.id, tbl.width, tbl.height)
+
             return (
               <div key={tbl.id}
-                onClick={(e) => { e.stopPropagation(); setSelected({ type: 'table', id: tbl.id }) }}
-                className={`absolute flex items-center justify-center font-bold text-sm rounded-xl border-2 cursor-pointer transition-all
-                  ${isSelected ? 'border-brand bg-brand-pale text-brand ring-2 ring-brand ring-offset-1' : 'border-gray-400 bg-white text-ink hover:border-brand'}`}
-                style={{ left: tbl.grid_col * CELL + 2, top: tbl.grid_row * CELL + 2, width: tbl.width * CELL - 4, height: tbl.height * CELL - 4 }}
+                onMouseDown={e => handleElementMouseDown(e, 'table', tbl.id, tbl.grid_col, tbl.grid_row)}
+                className={`absolute flex items-center justify-center font-bold text-sm rounded-xl border-2
+                  cursor-grab active:cursor-grabbing transition-shadow select-none
+                  ${isSelected
+                    ? 'border-brand bg-brand-pale text-brand ring-2 ring-brand ring-offset-1'
+                    : 'border-gray-400 bg-white text-ink hover:border-brand'}`}
+                style={{
+                  left: pos.col * CELL + 2, top: pos.row * CELL + 2,
+                  width: size.w * CELL - 4, height: size.h * CELL - 4,
+                  zIndex: isSelected ? 10 : 5
+                }}
               >
-                {tbl.name}
+                <span className="truncate px-1">{tbl.name}</span>
+
+                {/* Resize handle (bottom-right corner) */}
+                <div
+                  onMouseDown={e => handleResizeMouseDown(e, tbl.id, tbl.width, tbl.height)}
+                  title="Drag to resize"
+                  className={`absolute bottom-1 right-1 w-5 h-5 flex items-center justify-center
+                    rounded cursor-se-resize opacity-40 hover:opacity-100 transition-opacity
+                    ${isSelected ? 'bg-brand text-white' : 'bg-gray-500 text-white'}`}
+                >
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <path d="M1 8L8 1M4 8L8 4M7 8L8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* Add table modal */}
+      {/* ── Add table modal ── */}
       <Modal open={showTableModal} onClose={() => setShowTableModal(false)} title="Add Table" size="sm">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="text-xs font-semibold text-ink-muted block mb-1">Table Name</label>
-            <input
-              value={tableName}
-              onChange={(e) => setTableName(e.target.value)}
-              placeholder="e.g. T1, Bar, 01, Z-22"
-              className="w-full border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handlePlaceTable()}
+            <label className="text-sm font-semibold text-ink-muted block mb-2">Table Name</label>
+            <input value={tableName} onChange={e => setTableName(e.target.value)}
+              placeholder="e.g. T1, Bar, 01" autoFocus
+              className="w-full border border-border-warm rounded-xl px-4 py-3 text-base focus:outline-none focus:border-brand"
+              onKeyDown={e => e.key === 'Enter' && handlePlaceTable()}
             />
           </div>
           <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-ink-muted block mb-1">Width (cols)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setTableW(Math.max(1, tableW - 1))} className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"><Minus size={12} /></button>
-                <span className="font-bold text-sm w-6 text-center">{tableW}</span>
-                <button onClick={() => setTableW(Math.min(6, tableW + 1))} className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"><Plus size={12} /></button>
+            {[['Width (cols)', tableW, setTableW], ['Height (rows)', tableH, setTableH]].map(([lbl, val, set]) => (
+              <div key={lbl} className="flex-1">
+                <label className="text-sm font-semibold text-ink-muted block mb-2">{lbl}</label>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => set(v => Math.max(1, v - 1))}
+                    className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 text-lg">−</button>
+                  <span className="font-bold text-base w-6 text-center">{val}</span>
+                  <button onClick={() => set(v => Math.min(10, v + 1))}
+                    className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 text-lg">+</button>
+                </div>
               </div>
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-ink-muted block mb-1">Height (rows)</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setTableH(Math.max(1, tableH - 1))} className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"><Minus size={12} /></button>
-                <span className="font-bold text-sm w-6 text-center">{tableH}</span>
-                <button onClick={() => setTableH(Math.min(6, tableH + 1))} className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"><Plus size={12} /></button>
-              </div>
-            </div>
+            ))}
           </div>
           <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-center" style={{ height: Math.max(80, tableH * 28) }}>
             <div className="bg-white border-2 border-brand rounded-lg flex items-center justify-center font-bold text-sm text-brand"
@@ -382,25 +591,23 @@ export function FloorEditorPage({ onClose }) {
               {tableName || '?'}
             </div>
           </div>
-          <Button onClick={handlePlaceTable} disabled={!tableName.trim()} className="w-full">Place Table</Button>
+          <Button onClick={handlePlaceTable} disabled={!tableName.trim()} className="w-full" size="lg">Place Table</Button>
         </div>
       </Modal>
 
-      {/* Add label modal */}
+      {/* ── Add label modal ── */}
       <Modal open={showLabelModal} onClose={() => setShowLabelModal(false)} title="Add Label" size="sm">
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-ink-muted block mb-1">Label Text</label>
-            <input
-              value={labelText}
-              onChange={(e) => setLabelText(e.target.value)}
-              placeholder="e.g. Bar Area, Exit, Window"
-              className="w-full border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handlePlaceLabelConfirm()}
+            <label className="text-sm font-semibold text-ink-muted block mb-2">Label Text</label>
+            <input value={labelText} onChange={e => setLabelText(e.target.value)}
+              placeholder="e.g. Bar, Exit, Window" autoFocus
+              className="w-full border border-border-warm rounded-xl px-4 py-3 text-base focus:outline-none focus:border-brand"
+              onKeyDown={e => e.key === 'Enter' && handlePlaceLabelConfirm()}
             />
+            <p className="text-xs text-ink-muted mt-1.5">Labels use a 1×1 cell. Shorter text works best.</p>
           </div>
-          <Button onClick={handlePlaceLabelConfirm} disabled={!labelText.trim()} className="w-full">Place Label</Button>
+          <Button onClick={handlePlaceLabelConfirm} disabled={!labelText.trim()} className="w-full" size="lg">Place Label</Button>
         </div>
       </Modal>
     </div>

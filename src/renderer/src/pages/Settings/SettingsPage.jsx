@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  RefreshCw, Sunset, Tag, Download, Upload, Settings, Lock, Eye, EyeOff, Trash2, Plus, ExternalLink, Unlock
+  RefreshCw, Sunset, Tag, Download, Upload, Settings, Lock, Eye, EyeOff, Trash2, Plus, ExternalLink, Unlock,
+  ChefHat, Star
 } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
 import { Card, CardHeader } from '../../components/ui/Card.jsx'
@@ -111,8 +112,12 @@ export function SettingsPage() {
     { id: 'discounts', label: 'Discounts', icon: Tag },
     { id: 'config', label: 'Export / Import', icon: Download },
     { id: 'global', label: 'Global Settings', icon: Settings },
+    { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
     { id: 'security', label: 'Security', icon: Lock }
   ]
+
+  const LEVEL_LABELS = { 1: 'Starter', 2: 'Essential', 3: 'Professional', 4: 'Enterprise' }
+  const level = restaurant?.level ?? 1
 
   return (
     <div className="flex h-full gap-6 min-h-0">
@@ -136,16 +141,33 @@ export function SettingsPage() {
           <div className="space-y-4 max-w-lg">
             <h2 className="font-bold text-lg text-ink">Cache & Menu</h2>
             {restaurant && (
-              <Card>
-                <CardHeader title="Current Data" />
-                <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between"><span className="text-ink-muted">Restaurant</span><span className="font-medium">{restaurant.restaurant_name}</span></div>
-                  <div className="flex justify-between"><span className="text-ink-muted">Level</span><span className="font-medium">{restaurant.level}</span></div>
-                  <div className="flex justify-between"><span className="text-ink-muted">Last cached</span>
-                    <span className="font-medium">{restaurant.cached_at ? new Date(restaurant.cached_at).toLocaleString() : 'Unknown'}</span>
+              <>
+                {/* Level badge card */}
+                <Card dark>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-white/10 flex-shrink-0">
+                      <Star size={22} className="text-yellow-300 mb-0.5" />
+                      <span className="text-white font-black text-lg leading-none">{level}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-bold text-base">{LEVEL_LABELS[level] ?? `Level ${level}`}</p>
+                      <p className="text-gray-400 text-sm truncate">{restaurant.restaurant_name}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">
+                        Level {level} — {level >= 4 ? 'All features unlocked' : `Upgrade for more features`}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+                <Card>
+                  <CardHeader title="Connection Details" />
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between"><span className="text-ink-muted">Restaurant</span><span className="font-medium">{restaurant.restaurant_name}</span></div>
+                    <div className="flex justify-between"><span className="text-ink-muted">Last cached</span>
+                      <span className="font-medium">{restaurant.cached_at ? new Date(restaurant.cached_at).toLocaleString() : 'Unknown'}</span>
+                    </div>
+                  </div>
+                </Card>
+              </>
             )}
             <Card>
               <CardHeader title="Refresh Menu Data" subtitle="Enter your connection code to fetch latest menu" />
@@ -279,6 +301,30 @@ export function SettingsPage() {
               />
             </Card>
             <Card>
+              <CardHeader title="Floor Editor Grid Size" subtitle="Number of columns and rows in the floor layout editor" />
+              <div className="flex items-center gap-6">
+                <div>
+                  <label className="text-xs font-semibold text-ink-muted block mb-1.5">Columns</label>
+                  <input
+                    type="number" min={10} max={60}
+                    value={settings.grid_cols || 30}
+                    onChange={(e) => setSetting('grid_cols', e.target.value)}
+                    className="w-20 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-muted block mb-1.5">Rows</label>
+                  <input
+                    type="number" min={8} max={40}
+                    value={settings.grid_rows || 20}
+                    onChange={(e) => setSetting('grid_rows', e.target.value)}
+                    className="w-20 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
+                  />
+                </div>
+                <p className="text-xs text-ink-muted self-end pb-2">Reopen the editor to apply.</p>
+              </div>
+            </Card>
+            <Card>
               <CardHeader title="Prune Old Data" subtitle="Delete order records older than the retention period" />
               <Button variant="secondary" onClick={async () => {
                 const r = await window.feastAPI.settings.pruneOldData()
@@ -287,6 +333,61 @@ export function SettingsPage() {
                 Prune Now
               </Button>
             </Card>
+          </div>
+        )}
+
+        {/* Kitchen */}
+        {activeSection === 'kitchen' && (
+          <div className="space-y-4 max-w-lg">
+            <h2 className="font-bold text-lg text-ink">Kitchen Settings</h2>
+
+            <Card>
+              <CardHeader
+                title="Approval Mode"
+                subtitle="When enabled, kitchen staff explicitly marks orders as ready. When disabled, orders auto-progress by time."
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSetting('kitchen_approval_enabled', settings.kitchen_approval_enabled === 'false' ? 'true' : 'false')}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${settings.kitchen_approval_enabled !== 'false' ? 'bg-brand' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${settings.kitchen_approval_enabled !== 'false' ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className="text-sm font-medium text-ink">
+                  {settings.kitchen_approval_enabled !== 'false' ? 'Approval required' : 'Timer-based (no approval)'}
+                </span>
+              </div>
+            </Card>
+
+            {settings.kitchen_approval_enabled === 'false' && (
+              <Card>
+                <CardHeader
+                  title="Timer Thresholds"
+                  subtitle="Colors shown on kitchen order cards based on elapsed time"
+                />
+                <div className="space-y-4">
+                  {[
+                    { key: 'kitchen_timer_green', label: 'Green until', color: 'text-green-600', default: '5' },
+                    { key: 'kitchen_timer_red',   label: 'Red after',   color: 'text-red-600',   default: '20' },
+                    { key: 'kitchen_timer_done',  label: 'Auto-done after', color: 'text-red-800', default: '30' }
+                  ].map(({ key, label, color, default: def }) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className={`text-sm font-semibold ${color} w-32`}>{label}</span>
+                      <input
+                        type="number" min={1} max={120}
+                        value={settings[key] || def}
+                        onChange={e => setSetting(key, e.target.value)}
+                        className="w-20 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
+                      />
+                      <span className="text-sm text-ink-muted">minutes</span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-ink-muted pt-1">
+                    Green → Amber (between green &amp; red) → Red → Blinking → Auto-done
+                  </p>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 

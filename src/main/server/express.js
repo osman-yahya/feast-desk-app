@@ -3,6 +3,8 @@ import { join } from 'path'
 import { menuRoutes } from './routes/menu.routes.js'
 import { ordersRoutes } from './routes/orders.routes.js'
 import { floorsRoutes } from './routes/floors.routes.js'
+import { checkoutRoutes } from './routes/checkout.routes.js'
+import { settingsRoutes } from './routes/settings.routes.js'
 
 export function createExpressApp(publicDir) {
   const app = express()
@@ -16,6 +18,8 @@ export function createExpressApp(publicDir) {
   app.use('/api/menu', menuRoutes())
   app.use('/api/orders', ordersRoutes())
   app.use('/api/floors', floorsRoutes())
+  app.use('/api/checkout', checkoutRoutes())
+  app.use('/api/settings', settingsRoutes())
 
   // Catch-all: serve index.html for SPA routing
   app.get('*', (req, res) => {

@@ -19,7 +19,8 @@ export function buildBill(orderId, overrideDiscountPct) {
       return { ...item, line_total: 0, line_discount: item.unit_price * item.quantity }
     }
     const base = item.unit_price * item.quantity
-    const pct = overrideDiscountPct !== undefined ? overrideDiscountPct : (item.discount_pct || 0)
+    // null/undefined both mean "no override – fall back to per-item discount"
+    const pct = (overrideDiscountPct != null) ? overrideDiscountPct : (item.discount_pct ?? 0)
     const disc = parseFloat((base * pct / 100).toFixed(2))
     const total = parseFloat((base - disc).toFixed(2))
     subtotal += base

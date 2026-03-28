@@ -37,9 +37,22 @@ export const useOrderStore = create((set, get) => ({
     const added = await window.feastAPI.orders.addItem(orderId, item)
     if (tableId) {
       const td = get().tableOrders[tableId]
-      if (td) set((s) => ({ tableOrders: { ...s.tableOrders, [tableId]: { ...td, items: [...td.items, added] } } }))
+      if (td) {
+        const exists = td.items.some((i) => i.id === added.id)
+        const items = exists
+          ? td.items.map((i) => i.id === added.id ? added : i)
+          : [...td.items, added]
+        set((s) => ({ tableOrders: { ...s.tableOrders, [tableId]: { ...td, items } } }))
+      }
     } else {
-      set((s) => ({ directItems: [...s.directItems, added] }))
+      set((s) => {
+        const exists = s.directItems.some((i) => i.id === added.id)
+        return {
+          directItems: exists
+            ? s.directItems.map((i) => i.id === added.id ? added : i)
+            : [...s.directItems, added]
+        }
+      })
     }
     return added
   },

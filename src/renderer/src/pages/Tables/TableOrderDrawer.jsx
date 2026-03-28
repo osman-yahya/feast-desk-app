@@ -24,6 +24,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
   const [discountPct, setDiscountPct] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [bill, setBill] = useState(null)
+  const [appliedDiscount, setAppliedDiscount] = useState(null) // discount locked at bill-build time
   const [finalizing, setFinalizing] = useState(false)
   const [dutchSelected, setDutchSelected] = useState(new Map()) // id → qty
   const [dutchBill, setDutchBill] = useState(null)
@@ -74,19 +75,23 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
   async function openCheckout() {
     if (!order || !items.length) return
-    const b = await window.feastAPI.checkout.buildBill(order.id, discountPct || undefined)
+    // Lock the discount now so the bill displayed matches what will be finalized
+    const pct = discountPct > 0 ? discountPct : null
+    const b = await window.feastAPI.checkout.buildBill(order.id, pct)
     setBill(b)
+    setAppliedDiscount(pct)
     setShowCheckout(true)
   }
 
   async function handleFinalize() {
     if (!order) return
     setFinalizing(true)
-    const result = await window.feastAPI.checkout.finalize(order.id, paymentMethod, discountPct || undefined, null)
+    const result = await window.feastAPI.checkout.finalize(order.id, paymentMethod, appliedDiscount, null)
     setFinalizing(false)
     if (result.success) {
       toast(`Table ${table?.name} — Paid ${currency}${result.checkout.grand_total.toFixed(2)}`, 'success')
       setShowCheckout(false)
+      setAppliedDiscount(null)
       clearTableOrder(tableId)
       updateTableStatusLocally(tableId, 'empty')
       onClose()
@@ -274,7 +279,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       </Modal>
 
       {/* Checkout modal */}
-      <Modal open={showCheckout} onClose={() => setShowCheckout(false)} title={`Checkout — Table ${table?.name}`} size="md">
+      <Modal open={showCheckout} onClose={() => { setShowCheckout(false); setAppliedDiscount(null) }} title={`Checkout — Table ${table?.name}`} size="md">
         {bill && (
           <div className="space-y-4">
             <div className="space-y-1.5 max-h-40 overflow-y-auto">
