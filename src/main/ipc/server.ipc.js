@@ -12,7 +12,7 @@ import { join } from 'path'
 let mainWindowRef = null
 
 export function register(ipcMain, getMainWindow) {
-  ipcMain.handle('server:start', async () => {
+  ipcMain.handle('server:start', async (_, mode) => {
     try {
       const port = parseInt(settingsRepo.get('server_port') || '3737', 10)
       mainWindowRef = getMainWindow?.()
@@ -20,8 +20,11 @@ export function register(ipcMain, getMainWindow) {
         ? join(process.resourcesPath, 'public')
         : join(app.getAppPath(), 'src', 'main', 'server', 'public')
       const expressApp = createExpressApp(publicDir)
-      const result = await startServer(port, expressApp, mainWindowRef)
-      if (result.success) settingsRepo.set('server_enabled', 'true')
+      const result = await startServer(port, expressApp, mainWindowRef, mode || 'local')
+      if (result.success) {
+        settingsRepo.set('server_enabled', 'true')
+        settingsRepo.set('server_mode', mode || 'local')
+      }
       return result
     } catch (err) {
       return { success: false, error: err.message }

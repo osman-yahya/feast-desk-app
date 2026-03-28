@@ -2,12 +2,15 @@ import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import { networkInterfaces } from 'os'
 import QRCode from 'qrcode'
+import localtunnel from 'localtunnel'
 
 let httpServer = null
 let wss = null
 let localIP = null
 let serverPort = null
 let mainWindowRef = null
+let tunnelInstance = null
+let connectionMode = 'local' // 'local' | 'tunnel'
 
 // Track connected clients by role
 const clients = { waiter: new Set(), kitchen: new Set() }
@@ -22,12 +25,13 @@ export function getLocalIP() {
   return '127.0.0.1'
 }
 
-export async function startServer(port, app, mainWindow) {
+export async function startServer(port, app, mainWindow, mode = 'local') {
   if (httpServer) return { success: false, error: 'already_running' }
 
   serverPort = port || 3737
   localIP = getLocalIP()
   mainWindowRef = mainWindow
+  connectionMode = mode
 
   httpServer = createServer(app)
   wss = new WebSocketServer({ server: httpServer, path: '/ws' })
@@ -57,10 +61,32 @@ export async function startServer(port, app, mainWindow) {
     httpServer.on('error', reject)
   })
 
-  return { success: true, port: serverPort, ip: localIP }
+  // Start tunnel if mode is 'tunnel'
+  if (mode === 'tunnel') {
+    try {
+      tunnelInstance = await localtunnel({ port: serverPort })
+      tunnelInstance.on('close', () => { tunnelInstance = null })
+    } catch (err) {
+      // Server started but tunnel failed — stop everything and report
+      await stopServer()
+      return { success: false, error: `Tunnel failed: ${err.message}` }
+    }
+  }
+
+  return {
+    success: true,
+    port: serverPort,
+    ip: localIP,
+    mode: connectionMode,
+    tunnelUrl: tunnelInstance?.url || null
+  }
 }
 
 export async function stopServer() {
+  if (tunnelInstance) {
+    tunnelInstance.close()
+    tunnelInstance = null
+  }
   if (!httpServer) return
   for (const ws of [...clients.waiter, ...clients.kitchen]) ws.close()
   clients.waiter.clear()
@@ -68,6 +94,7 @@ export async function stopServer() {
   await new Promise((r) => httpServer.close(r))
   httpServer = null
   wss = null
+  connectionMode = 'local'
 }
 
 export function getServerStatus() {
@@ -75,14 +102,17 @@ export function getServerStatus() {
     running: !!httpServer,
     port: serverPort,
     ip: localIP,
+    mode: connectionMode,
+    tunnelUrl: tunnelInstance?.url || null,
     waiter_clients: clients.waiter.size,
     kitchen_clients: clients.kitchen.size
   }
 }
 
-export async function generateQR() {
+export async function generateQR(role = 'waiter') {
   if (!httpServer) return null
-  const url = `http://${localIP}:${serverPort}/waiter`
+  const baseUrl = tunnelInstance?.url || `http://${localIP}:${serverPort}`
+  const url = role === 'kitchen' ? `${baseUrl}?role=kitchen` : `${baseUrl}/waiter`
   return QRCode.toDataURL(url)
 }
 
