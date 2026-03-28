@@ -39,7 +39,8 @@ async function runMigrations(database) {
 
   const migrations = [
     { name: '001_init', run: (await import('./migrations/001_init.js')).default },
-    { name: '002_fix_wall_angle', run: (await import('./migrations/002_fix_wall_angle.js')).default }
+    { name: '002_fix_wall_angle', run: (await import('./migrations/002_fix_wall_angle.js')).default },
+    { name: '003_kitchen_done', run: (await import('./migrations/003_kitchen_done.js')).default }
   ]
 
   for (const migration of migrations) {

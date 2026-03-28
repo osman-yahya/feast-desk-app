@@ -1047,14 +1047,14 @@ async function refreshKitchenOrders() {
       const newItems = detail.items || []
 
       if (!kitchenOrders.has(tid)) {
-        // New order we haven't seen — add it
+        // New order we haven't seen — initialise done from DB
         kitchenOrders.set(tid, {
           tableId: tid,
           tableName: o.table_name || `Table ${tid}`,
           orderId: o.id,
           items: newItems,
           openedAt: o.opened_at || Date.now(),
-          done: false,
+          done: !!o.kitchen_done_at,
           undoTimeout: null
         })
       } else {
@@ -1069,6 +1069,8 @@ async function refreshKitchenOrders() {
         if (existing.done && oldSig !== newSig) {
           existing.done = false
           existing.openedAt = Date.now()
+          // Clear kitchen-done in DB since new items arrived
+          fetch(`/api/orders/${existing.orderId}/kitchen-undo`, { method: 'PATCH' }).catch(() => {})
         }
 
         // Don't overwrite items during the 3s undo window
@@ -1204,6 +1206,8 @@ function undoOrderDone(tableId) {
   order.undoTimeout = null
   order._pendingDone = false
   renderKitchenOrders()
+  // Undo kitchen-done in DB in case it was already persisted
+  fetch(`/api/orders/${order.orderId}/kitchen-undo`, { method: 'PATCH' }).catch(() => {})
 }
 
 function commitOrderDone(tableId) {
@@ -1213,6 +1217,8 @@ function commitOrderDone(tableId) {
   order._pendingDone = false
   order.undoTimeout = null
   renderKitchenOrders()
+  // Persist kitchen-done to DB so it survives reconnects
+  fetch(`/api/orders/${order.orderId}/kitchen-done`, { method: 'PATCH' }).catch(() => {})
 }
 
 // ══════════════════════════════════════════════════════════════════════

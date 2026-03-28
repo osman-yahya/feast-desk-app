@@ -68,7 +68,7 @@ export function Sidebar({ collapsed, onToggle }) {
             <div title={restaurant.restaurant_name}>
               {restaurant.img_local_path ? (
                 <img
-                  src={`file://${restaurant.img_local_path}`}
+                  src={`feast-local://${restaurant.img_local_path}`}
                   alt="restaurant"
                   className="w-8 h-8 rounded-lg object-cover bg-gray-100"
                 />
@@ -82,7 +82,7 @@ export function Sidebar({ collapsed, onToggle }) {
             <div className="flex items-center gap-2.5">
               {restaurant.img_local_path ? (
                 <img
-                  src={`file://${restaurant.img_local_path}`}
+                  src={`feast-local://${restaurant.img_local_path}`}
                   alt="restaurant"
                   className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-gray-100"
                 />

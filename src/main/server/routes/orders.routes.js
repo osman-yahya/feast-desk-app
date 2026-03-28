@@ -55,6 +55,32 @@ export function ordersRoutes() {
     }
   })
 
+  // PATCH /api/orders/:orderId/kitchen-done — mark order as kitchen-done
+  router.patch('/:orderId/kitchen-done', (req, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId, 10)
+      const order = orderRepo.getById(orderId)
+      if (!order) return res.status(404).json({ error: 'Order not found' })
+      orderRepo.markKitchenDone(orderId)
+      res.json({ success: true })
+    } catch (err) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // PATCH /api/orders/:orderId/kitchen-undo — undo kitchen-done
+  router.patch('/:orderId/kitchen-undo', (req, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId, 10)
+      const order = orderRepo.getById(orderId)
+      if (!order) return res.status(404).json({ error: 'Order not found' })
+      orderRepo.undoKitchenDone(orderId)
+      res.json({ success: true })
+    } catch (err) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
   // DELETE /api/orders/items/:itemId — remove an item
   router.delete('/items/:itemId', (req, res) => {
     try {

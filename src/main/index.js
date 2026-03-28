@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from './db/database.js'
 import { checkCacheFreshness } from './services/cache.service.js'
@@ -51,8 +52,19 @@ function createWindow() {
   }
 }
 
+// Register custom protocol to serve local files (file:// is blocked in renderer)
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'feast-local', privileges: { bypassCSP: true, supportFetchAPI: true } }
+])
+
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('tr.feast.desk')
+
+  // Handle feast-local:// URLs → serve local files safely
+  protocol.handle('feast-local', (request) => {
+    const filePath = decodeURIComponent(request.url.replace('feast-local://', ''))
+    return net.fetch(pathToFileURL(filePath).href)
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

@@ -65,6 +65,14 @@ export const orderRepo = {
     return true
   },
 
+  markKitchenDone(id) {
+    getDb().prepare('UPDATE orders SET kitchen_done_at = ? WHERE id = ?').run(Date.now(), id)
+  },
+
+  undoKitchenDone(id) {
+    getDb().prepare('UPDATE orders SET kitchen_done_at = NULL WHERE id = ?').run(id)
+  },
+
   getHistory(fromTs, toTs) {
     return getDb()
       .prepare("SELECT o.*, t.name as table_name FROM orders o LEFT JOIN tables t ON o.table_id = t.id WHERE o.status = 'paid' AND o.closed_at BETWEEN ? AND ? ORDER BY o.closed_at DESC")
