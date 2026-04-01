@@ -1,0 +1,12 @@
+{
+  "name": "feast-tunnel-auth-sidecar",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "http-proxy": "^1.18.1"
+  }
+}

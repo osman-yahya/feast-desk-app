@@ -4,7 +4,7 @@ export const useServerStore = create((set) => ({
   isRunning: false,
   port: null,
   ip: null,
-  connectionMode: 'local', // 'local' | 'tunnel'
+  connectionMode: 'local', // 'local' | 'tunnel' | 'feast-tunnel'
   tunnelUrl: null,
   qrDataURL: null,
   waiterClients: 0,

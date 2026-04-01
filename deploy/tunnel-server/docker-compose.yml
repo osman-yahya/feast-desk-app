@@ -1,0 +1,32 @@
+services:
+  # ─── cloudflared already configured ──────────────────────────────────────────────
+  # Outbound-only tunnel to Cloudflare edge.
+  # No inbound ports needed — cloudflared connects outward.
+  # Public hostname configured in Cloudflare dashboard:
+  #   tunnel.feast.tr → http://localhost:4000
+  # ─── feast-tunnel ─────────────────────────────────────────────
+  # Custom WebSocket tunnel server (uWebSockets.js).
+  # Handles: auth, POS tunnel connections, end-user HTTP/WS relay.
+  # Single service replaces localtunnel + auth-sidecar.
+  feast-tunnel:
+    build: ./feast-tunnel
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PORT=4000
+      - BIND=0.0.0.0
+      - MAX_TUNNELS=${MAX_TUNNELS:-10000}
+      - TUNNEL_DOMAIN=${TUNNEL_DOMAIN:-tunnel.feast.tr}
+      - NODE_ENV=development
+    ports:
+      - "4000:4000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=10M
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 6G

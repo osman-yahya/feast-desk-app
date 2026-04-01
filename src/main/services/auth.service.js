@@ -59,6 +59,7 @@ export async function connectRestaurant(code) {
 
   settingsRepo.set('connected', 'true')
   settingsRepo.set('restaurant_id', String(id))
+  settingsRepo.set('restaurant_secret', secret)
 
   const cached = restaurantRepo.get()
   return { success: true, restaurant: serializeRestaurant(cached) }
@@ -92,6 +93,7 @@ export function disconnect() {
   restaurantRepo.clear()
   settingsRepo.set('connected', 'false')
   settingsRepo.set('restaurant_id', '')
+  settingsRepo.set('restaurant_secret', '')
 }
 
 // ---- helpers ----

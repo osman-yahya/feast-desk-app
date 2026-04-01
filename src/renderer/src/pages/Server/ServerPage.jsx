@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Wifi, WifiOff, Users, ChefHat, QrCode, RefreshCw, Globe, Shield, Loader2 } from 'lucide-react'
+import { Wifi, WifiOff, Users, ChefHat, QrCode, RefreshCw, Globe, Shield, Loader2, Lock, Zap } from 'lucide-react'
 import { Card, CardHeader } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { PillBadge } from '../../components/ui/PillBadge.jsx'
 import { useServerStore } from '../../store/useServerStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
+import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useToast } from '../../components/ui/Toast.jsx'
+import { FREE_TUNNEL_MIN_LEVEL, FEAST_TUNNEL_MIN_LEVEL } from '../../config/modules.config.js'
 
 export function ServerPage() {
   const {
@@ -14,8 +16,11 @@ export function ServerPage() {
     start, stop, refreshStatus
   } = useServerStore()
   const { settings, set: setSetting } = useSettingsStore()
+  const level = useRestaurantStore((s) => s.level)
   const toast = useToast()
   const [selectedMode, setSelectedMode] = useState('local')
+  const canFreeTunnel = level >= FREE_TUNNEL_MIN_LEVEL
+  const canFeastTunnel = level >= FEAST_TUNNEL_MIN_LEVEL
   const [starting, setStarting] = useState(false)
 
   useEffect(() => {
@@ -29,7 +34,8 @@ export function ServerPage() {
     try {
       const result = await start(selectedMode)
       if (result.success) {
-        toast(`Server started${result.mode === 'tunnel' ? ' with tunnel' : ''} on port ${result.port}`, 'success')
+        const modeLabel = result.mode === 'feast-tunnel' ? ' with feast tunnel' : result.mode === 'tunnel' ? ' with tunnel' : ''
+        toast(`Server started${modeLabel} on port ${result.port}`, 'success')
       } else {
         toast(result.error || 'Failed to start server', 'error')
       }
@@ -73,8 +79,16 @@ export function ServerPage() {
         {isRunning && (
           <div className="mb-3">
             <PillBadge
-              label={connectionMode === 'tunnel' ? 'Strong Connection (Tunnel)' : 'Safe Connection (Local)'}
-              color={connectionMode === 'tunnel' ? 'amber' : 'green'}
+              label={
+                connectionMode === 'feast-tunnel' ? 'feast. Tunnel' :
+                connectionMode === 'tunnel' ? 'Free Tunnel' :
+                'Local Network'
+              }
+              color={
+                connectionMode === 'feast-tunnel' ? 'green' :
+                connectionMode === 'tunnel' ? 'amber' :
+                'green'
+              }
             />
           </div>
         )}
@@ -111,8 +125,8 @@ export function ServerPage() {
       {!isRunning && (
         <div>
           <h2 className="font-semibold text-sm text-ink mb-3">Connection Type</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Safe Connection (Local) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Local Network */}
             <button
               onClick={() => setSelectedMode('local')}
               className={`text-left p-4 rounded-2xl border-2 transition-all ${
@@ -128,12 +142,12 @@ export function ServerPage() {
                   <Shield size={18} className={selectedMode === 'local' ? 'text-brand' : 'text-ink-muted'} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-ink">Safe Connection</p>
-                  <p className="text-xs text-ink-muted">Local Network</p>
+                  <p className="font-semibold text-sm text-ink">Local Network</p>
+                  <p className="text-xs text-ink-muted">Same Wi-Fi</p>
                 </div>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Devices connect directly over your Wi-Fi. Fastest and most private — no data leaves your network. All devices must be on the same Wi-Fi.
+                Devices connect directly over your Wi-Fi. Fastest and most private — no data leaves your network.
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Fastest</span>
@@ -142,33 +156,77 @@ export function ServerPage() {
               </div>
             </button>
 
-            {/* Strong Connection (Tunnel) */}
+            {/* Free Tunnel */}
             <button
-              onClick={() => setSelectedMode('tunnel')}
-              className={`text-left p-4 rounded-2xl border-2 transition-all ${
-                selectedMode === 'tunnel'
+              onClick={() => canFreeTunnel && setSelectedMode('tunnel')}
+              className={`text-left p-4 rounded-2xl border-2 transition-all relative ${
+                !canFreeTunnel
+                  ? 'border-border-warm bg-gray-50 opacity-60 cursor-not-allowed'
+                  : selectedMode === 'tunnel'
                   ? 'border-brand bg-brand/5'
                   : 'border-border-warm bg-white hover:border-gray-300'
               }`}
             >
+              {!canFreeTunnel && (
+                <div className="absolute top-3 right-3">
+                  <Lock size={14} className="text-gray-400" />
+                </div>
+              )}
               <div className="flex items-center gap-2.5 mb-2">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  selectedMode === 'tunnel' ? 'bg-brand/10' : 'bg-gray-100'
+                  selectedMode === 'tunnel' && canFreeTunnel ? 'bg-brand/10' : 'bg-gray-100'
                 }`}>
-                  <Globe size={18} className={selectedMode === 'tunnel' ? 'text-brand' : 'text-ink-muted'} />
+                  <Globe size={18} className={selectedMode === 'tunnel' && canFreeTunnel ? 'text-brand' : 'text-ink-muted'} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-ink">Strong Connection</p>
+                  <p className="font-semibold text-sm text-ink">Free Tunnel</p>
                   <p className="text-xs text-ink-muted">Internet Tunnel</p>
                 </div>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Creates a public URL via secure tunnel. Works even if devices are on different networks or Wi-Fi is unreliable. Slightly slower.
+                Creates a public URL via third-party tunnel. Works across different networks. URL changes on each restart.
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Any network</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Reliable</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">Needs internet</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">Temporary URL</span>
+                {!canFreeTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Level {FREE_TUNNEL_MIN_LEVEL}+</span>}
+              </div>
+            </button>
+
+            {/* feast. Tunnel */}
+            <button
+              onClick={() => canFeastTunnel && setSelectedMode('feast-tunnel')}
+              className={`text-left p-4 rounded-2xl border-2 transition-all relative ${
+                !canFeastTunnel
+                  ? 'border-border-warm bg-gray-50 opacity-60 cursor-not-allowed'
+                  : selectedMode === 'feast-tunnel'
+                  ? 'border-brand bg-brand/5'
+                  : 'border-border-warm bg-white hover:border-gray-300'
+              }`}
+            >
+              {!canFeastTunnel && (
+                <div className="absolute top-3 right-3">
+                  <Lock size={14} className="text-gray-400" />
+                </div>
+              )}
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  selectedMode === 'feast-tunnel' && canFeastTunnel ? 'bg-brand/10' : 'bg-gray-100'
+                }`}>
+                  <Zap size={18} className={selectedMode === 'feast-tunnel' && canFeastTunnel ? 'text-brand' : 'text-ink-muted'} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-ink">feast. Tunnel</p>
+                  <p className="text-xs text-ink-muted">Premium Tunnel</p>
+                </div>
+              </div>
+              <p className="text-xs text-ink-muted leading-relaxed">
+                Dedicated tunnel through feast. servers. Stable permanent URL, fastest remote connection, auto-reconnect.
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Permanent URL</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Auto-reconnect</span>
+                {!canFeastTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Level {FEAST_TUNNEL_MIN_LEVEL}+</span>}
               </div>
             </button>
           </div>
@@ -178,8 +236,10 @@ export function ServerPage() {
             <p className="text-xs text-ink-muted leading-relaxed">
               {selectedMode === 'local' ? (
                 <><strong className="text-ink">Recommended when:</strong> All staff devices (phones, tablets) are connected to the same Wi-Fi network as this computer. Best performance and full privacy.</>
+              ) : selectedMode === 'tunnel' ? (
+                <><strong className="text-ink">Recommended when:</strong> Your restaurant has multiple Wi-Fi networks, weak signal areas, or staff use mobile data. URL changes each time the server restarts.</>
               ) : (
-                <><strong className="text-ink">Recommended when:</strong> Your restaurant has multiple Wi-Fi networks, weak signal areas, or staff use mobile data. Connection stays stable even if Wi-Fi drops briefly.</>
+                <><strong className="text-ink">Recommended when:</strong> You need a reliable, always-the-same URL for your staff. Works across any network with automatic reconnection if connection drops.</>
               )}
             </p>
           </div>
@@ -219,6 +279,8 @@ export function ServerPage() {
                 { icon: '3', text: 'Visit the URL and select "Kitchen" to display incoming orders' },
                 ...(connectionMode === 'local'
                   ? [{ icon: '!', text: 'All devices must be on the same Wi-Fi network' }]
+                  : connectionMode === 'feast-tunnel'
+                  ? [{ icon: '!', text: 'Devices can be on any network — your feast. tunnel URL is permanent' }]
                   : [{ icon: '!', text: 'Devices can be on any network — the tunnel URL works everywhere' }]
                 )
               ].map((step, i) => (
@@ -235,16 +297,22 @@ export function ServerPage() {
       )}
 
       {/* Tunnel URL display when running in tunnel mode */}
-      {isRunning && connectionMode === 'tunnel' && tunnelUrl && (
+      {isRunning && (connectionMode === 'tunnel' || connectionMode === 'feast-tunnel') && tunnelUrl && (
         <Card>
-          <CardHeader title="Tunnel URL" subtitle="Share this URL with staff on any network" />
+          <CardHeader
+            title={connectionMode === 'feast-tunnel' ? 'feast. Tunnel URL' : 'Tunnel URL'}
+            subtitle="Share this URL with staff on any network"
+          />
           <div className="flex items-center gap-2">
             <code className="flex-1 text-sm bg-gray-50 px-3 py-2 rounded-xl border border-border-warm break-all font-mono">
               {tunnelUrl}
             </code>
           </div>
           <p className="text-xs text-ink-muted mt-2">
-            This URL is temporary and changes each time the server restarts.
+            {connectionMode === 'feast-tunnel'
+              ? 'This URL is permanent and stays the same across restarts.'
+              : 'This URL is temporary and changes each time the server restarts.'
+            }
           </p>
         </Card>
       )}

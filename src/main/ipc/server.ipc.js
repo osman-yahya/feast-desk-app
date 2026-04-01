@@ -20,7 +20,19 @@ export function register(ipcMain, getMainWindow) {
         ? join(process.resourcesPath, 'public')
         : join(app.getAppPath(), 'src', 'main', 'server', 'public')
       const expressApp = createExpressApp(publicDir)
-      const result = await startServer(port, expressApp, mainWindowRef, mode || 'local')
+
+      // For feast-tunnel mode, pass restaurant credentials
+      let credentials = null
+      if (mode === 'feast-tunnel') {
+        const restaurantId = settingsRepo.get('restaurant_id')
+        const secret = settingsRepo.get('restaurant_secret')
+        if (!restaurantId || !secret) {
+          return { success: false, error: 'Restaurant credentials not found. Please reconnect your restaurant.' }
+        }
+        credentials = { restaurantId, secret }
+      }
+
+      const result = await startServer(port, expressApp, mainWindowRef, mode || 'local', credentials)
       if (result.success) {
         settingsRepo.set('server_enabled', 'true')
         settingsRepo.set('server_mode', mode || 'local')
