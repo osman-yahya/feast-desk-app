@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Plus, Minus, CreditCard, Tag, Gift, Users, Trash2 } from 'lucide-react'
+import { X, Plus, Minus, CreditCard, Tag, Gift, Users, Trash2, SplitSquareVertical, Hash } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
 import { ConfirmLock } from '../../components/ui/ConfirmLock.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
@@ -20,14 +20,17 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
   const [showAddItems, setShowAddItems] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [showDutch, setShowDutch] = useState(false)
+  const [showEqualSplit, setShowEqualSplit] = useState(false)
   const [activeCatIdx, setActiveCatIdx] = useState(0)
   const [discountPct, setDiscountPct] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [bill, setBill] = useState(null)
-  const [appliedDiscount, setAppliedDiscount] = useState(null) // discount locked at bill-build time
+  const [appliedDiscount, setAppliedDiscount] = useState(null)
   const [finalizing, setFinalizing] = useState(false)
-  const [dutchSelected, setDutchSelected] = useState(new Map()) // id → qty
+  const [cashierNote, setCashierNote] = useState('')
+  const [dutchSelected, setDutchSelected] = useState(new Map())
   const [dutchBill, setDutchBill] = useState(null)
+  const [splitCount, setSplitCount] = useState(2)
 
   const entry = tableOrders[tableId]
   const order = entry?.order
@@ -39,6 +42,30 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     loadTableOrder(tableId)
     setActiveCatIdx(0)
   }, [tableId])
+
+  // --- Helpers ---
+
+  // Compute discounted price of a single item row
+  function itemEffectiveTotal(item) {
+    if (item.is_free) return 0
+    const base = item.unit_price * item.quantity
+    const pct = discountPct > 0 ? discountPct : (item.discount_pct || 0)
+    return parseFloat((base * (1 - pct / 100)).toFixed(2))
+  }
+
+  const unpaidItems = items.filter((i) => !i.is_paid_partial)
+  const paidItems = items.filter((i) => i.is_paid_partial)
+
+  // Remaining total (after removing already-paid split amounts)
+  const remainingTotal = unpaidItems.reduce((s, i) => s + itemEffectiveTotal(i), 0)
+  const paidPartialTotal = paidItems.reduce((s, i) => {
+    if (i.is_free) return s
+    const base = i.unit_price * i.quantity
+    const pct = discountPct > 0 ? discountPct : (i.discount_pct || 0)
+    return s + parseFloat((base * (1 - pct / 100)).toFixed(2))
+  }, 0)
+
+  // --- Order actions ---
 
   async function getOrCreateOrder() {
     if (order) return order
@@ -73,20 +100,22 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     await updateItem(item.id, { is_free: !item.is_free ? 1 : 0 }, tableId)
   }
 
+  // --- Checkout ---
+
   async function openCheckout() {
     if (!order || !items.length) return
-    // Lock the discount now so the bill displayed matches what will be finalized
     const pct = discountPct > 0 ? discountPct : null
     const b = await window.feastAPI.checkout.buildBill(order.id, pct)
     setBill(b)
     setAppliedDiscount(pct)
+    setCashierNote('')
     setShowCheckout(true)
   }
 
   async function handleFinalize() {
     if (!order) return
     setFinalizing(true)
-    const result = await window.feastAPI.checkout.finalize(order.id, paymentMethod, appliedDiscount, null)
+    const result = await window.feastAPI.checkout.finalize(order.id, paymentMethod, appliedDiscount, cashierNote || null)
     setFinalizing(false)
     if (result.success) {
       toast(`Table ${table?.name} — Paid ${currency}${result.checkout.grand_total.toFixed(2)}`, 'success')
@@ -109,8 +138,9 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     onClose()
   }
 
-  // Dutch treat: calculate partial bill for selected items
-  async function openDutch() {
+  // --- Dutch treat (item-by-item split) ---
+
+  function openDutch() {
     setDutchSelected(new Map())
     setDutchBill(null)
     setShowDutch(true)
@@ -125,11 +155,10 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
         total += item.unit_price * qty * (1 - pct / 100)
       }
     }
-    setDutchBill(parseFloat(total.toFixed(2)))
+    setDutchBill(Math.max(0, parseFloat(total.toFixed(2))))
   }
 
   async function handleMarkDutchPaid() {
-    // Mark fully-selected items as paid_partial
     const fullItemIds = [...dutchSelected.entries()]
       .filter(([itemId, qty]) => {
         const item = items.find((i) => i.id === itemId)
@@ -142,8 +171,14 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     setShowDutch(false)
   }
 
-  const subtotal = items.reduce((s, i) => s + (!i.is_free ? i.unit_price * i.quantity : 0), 0)
-  const paidPartialTotal = items.filter((i) => i.is_paid_partial).reduce((s, i) => s + (i.unit_price * i.quantity), 0)
+  // --- Equal split ---
+
+  function openEqualSplit() {
+    setSplitCount(2)
+    setShowEqualSplit(true)
+  }
+
+  const perPersonAmount = remainingTotal > 0 ? Math.max(0, parseFloat((remainingTotal / splitCount).toFixed(2))) : 0
 
   return (
     <div className="w-80 flex-shrink-0 bg-white border-l border-border-warm flex flex-col h-full">
@@ -167,31 +202,39 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
           </div>
         ) : (
           items.map((item) => (
-            <div key={item.id} className={`flex items-center gap-2 py-2 border-b border-border-warm last:border-0 ${item.is_paid_partial ? 'opacity-50' : ''}`}>
+            <div key={item.id} className={`flex items-center gap-2 py-2 border-b border-border-warm last:border-0 ${item.is_paid_partial ? 'opacity-40' : ''}`}>
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-medium truncate ${item.is_free ? 'line-through text-gray-400' : 'text-ink'}`}>
                   {item.menu_item_name}
+                  {item.is_paid_partial && <span className="ml-1 text-blue-500 text-[10px]">PAID</span>}
                 </p>
                 <p className="text-xs text-brand font-semibold">
                   {item.is_free ? 'Free' : `${currency}${(item.unit_price * item.quantity).toFixed(2)}`}
+                  {!item.is_free && (discountPct > 0 || item.discount_pct > 0) && !item.is_paid_partial && (
+                    <span className="text-green-600 ml-1 text-[10px]">
+                      -{discountPct > 0 ? discountPct : item.discount_pct}%
+                    </span>
+                  )}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleToggleFree(item)}
-                  className={`p-1.5 rounded-lg transition-colors ${item.is_free ? 'text-green-500' : 'text-gray-300 hover:text-green-400'}`}
-                  title="Mark free"
-                >
-                  <Gift size={14} />
-                </button>
-                <button onClick={() => handleQtyChange(item, -1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 active:scale-95">
-                  <Minus size={12} />
-                </button>
-                <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
-                <button onClick={() => handleQtyChange(item, 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 active:scale-95">
-                  <Plus size={12} />
-                </button>
-              </div>
+              {!item.is_paid_partial && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleFree(item)}
+                    className={`p-1.5 rounded-lg transition-colors ${item.is_free ? 'text-green-500' : 'text-gray-300 hover:text-green-400'}`}
+                    title="Mark free"
+                  >
+                    <Gift size={14} />
+                  </button>
+                  <button onClick={() => handleQtyChange(item, -1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 active:scale-95">
+                    <Minus size={12} />
+                  </button>
+                  <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
+                  <button onClick={() => handleQtyChange(item, 1)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 active:scale-95">
+                    <Plus size={12} />
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -217,14 +260,21 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
         {/* Total line */}
         {items.length > 0 && (
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-ink-muted">
-              {discountPct > 0 ? `Total (${discountPct}% off)` : 'Total'}
-              {paidPartialTotal > 0 && <span className="text-blue-500 ml-1">· {currency}{paidPartialTotal.toFixed(2)} paid</span>}
-            </span>
-            <span className="font-bold text-sm text-brand">
-              {currency}{(subtotal * (1 - discountPct / 100) - paidPartialTotal).toFixed(2)}
-            </span>
+          <div className="space-y-1 px-1">
+            {paidPartialTotal > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-blue-500">Already paid (split)</span>
+                <span className="text-[11px] text-blue-500 font-semibold">{currency}{paidPartialTotal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-ink-muted">
+                {discountPct > 0 ? `Remaining (${discountPct}% off)` : 'Remaining'}
+              </span>
+              <span className="font-bold text-sm text-brand">
+                {currency}{Math.max(0, remainingTotal).toFixed(2)}
+              </span>
+            </div>
           </div>
         )}
 
@@ -233,9 +283,14 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
             Add Items
           </Button>
           {items.length > 0 && (
-            <Button size="sm" variant="secondary" icon={Users} onClick={openDutch} title="Dutch treat">
-              Split
-            </Button>
+            <>
+              <Button size="sm" variant="secondary" icon={Users} onClick={openDutch} title="Split by items">
+                Split
+              </Button>
+              <Button size="sm" variant="secondary" icon={Hash} onClick={openEqualSplit} title="Split equally">
+                ÷N
+              </Button>
+            </>
           )}
         </div>
 
@@ -279,48 +334,111 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
         </div>
       </Modal>
 
-      {/* Checkout modal */}
-      <Modal open={showCheckout} onClose={() => { setShowCheckout(false); setAppliedDiscount(null) }} title={`Checkout — Table ${table?.name}`} size="md">
+      {/* Checkout modal — expanded */}
+      <Modal open={showCheckout} onClose={() => { setShowCheckout(false); setAppliedDiscount(null) }} title={`Checkout — Table ${table?.name}`} size="lg">
         {bill && (
-          <div className="space-y-4">
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
-              {bill.items.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className={item.is_free ? 'line-through text-gray-400' : 'text-ink'}>{item.menu_item_name} ×{item.quantity}</span>
-                  <span className="font-medium text-ink">{currency}{item.line_total.toFixed(2)}</span>
+          <div className="flex gap-6">
+            {/* Left: item breakdown */}
+            <div className="flex-1 min-w-0 space-y-4">
+              <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Order Items</h3>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-2">
+                {bill.items.map((item) => (
+                  <div key={item.id} className={`flex justify-between text-sm py-1.5 ${item.is_paid_partial ? 'opacity-40' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <span className={item.is_free ? 'line-through text-gray-400' : 'text-ink'}>
+                        {item.menu_item_name}
+                      </span>
+                      <span className="text-ink-muted ml-1">×{item.quantity}</span>
+                      {item.is_paid_partial && <span className="text-blue-500 text-[10px] ml-1">PAID</span>}
+                      {item.applied_pct > 0 && !item.is_paid_partial && (
+                        <span className="text-green-600 text-[10px] ml-1">-{item.applied_pct}%</span>
+                      )}
+                    </div>
+                    <span className="font-medium text-ink ml-2 flex-shrink-0">{currency}{item.line_total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Cashier note */}
+              <div>
+                <label className="text-xs text-ink-muted block mb-1">Note (optional)</label>
+                <input
+                  type="text"
+                  value={cashierNote}
+                  onChange={(e) => setCashierNote(e.target.value)}
+                  placeholder="e.g. customer feedback, special request..."
+                  className="w-full border border-border-warm rounded-xl px-3 py-2 text-sm text-ink placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
+              </div>
+            </div>
+
+            {/* Right: summary + payment */}
+            <div className="w-56 flex-shrink-0 space-y-4">
+              {/* Bill summary card */}
+              <div className="bg-surface-dark rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between text-sm text-gray-400">
+                  <span>Subtotal</span>
+                  <span>{currency}{bill.subtotal.toFixed(2)}</span>
                 </div>
-              ))}
+                {bill.discount_total > 0 && (
+                  <div className="flex justify-between text-sm text-green-400">
+                    <span>Discount</span>
+                    <span>-{currency}{bill.discount_total.toFixed(2)}</span>
+                  </div>
+                )}
+                {paidPartialTotal > 0 && (
+                  <div className="flex justify-between text-sm text-blue-400">
+                    <span>Paid (split)</span>
+                    <span>-{currency}{paidPartialTotal.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-700 pt-2">
+                  <div className="flex justify-between font-bold text-lg text-white">
+                    <span>Total</span>
+                    <span>{currency}{bill.grand_total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment method */}
+              <div>
+                <p className="text-xs text-ink-muted mb-2">Payment Method</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {['cash', 'card', 'other'].map((m) => (
+                    <button key={m} onClick={() => setPaymentMethod(m)}
+                      className={`py-2.5 rounded-xl text-sm font-semibold capitalize transition-all ${paymentMethod === m ? 'bg-brand text-white shadow-md scale-105' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Button onClick={handleFinalize} loading={finalizing} className="w-full" size="lg">
+                Confirm Payment
+              </Button>
             </div>
-            <div className="border-t border-border-warm pt-3 space-y-1">
-              <div className="flex justify-between text-sm text-ink-muted"><span>Subtotal</span><span>{currency}{bill.subtotal.toFixed(2)}</span></div>
-              {bill.discount_total > 0 && <div className="flex justify-between text-sm text-green-600"><span>Discount</span><span>-{currency}{bill.discount_total.toFixed(2)}</span></div>}
-              <div className="flex justify-between font-bold text-base text-ink pt-1"><span>Total</span><span className="text-brand">{currency}{bill.grand_total.toFixed(2)}</span></div>
-            </div>
-            <div className="flex gap-2">
-              {['cash', 'card', 'other'].map((m) => (
-                <button key={m} onClick={() => setPaymentMethod(m)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold capitalize ${paymentMethod === m ? 'bg-brand text-white' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}>{m}</button>
-              ))}
-            </div>
-            <Button onClick={handleFinalize} loading={finalizing} className="w-full" size="lg">Confirm Payment</Button>
           </div>
         )}
       </Modal>
 
-      {/* Dutch treat modal */}
-      <Modal open={showDutch} onClose={() => setShowDutch(false)} title="Split Bill" size="sm">
+      {/* Dutch treat modal (split by items) */}
+      <Modal open={showDutch} onClose={() => setShowDutch(false)} title="Split by Items" size="md">
         <div className="space-y-3">
           <p className="text-sm text-ink-muted">Select items and quantities for this person:</p>
-          <div className="space-y-2 max-h-52 overflow-y-auto">
-            {items.filter((i) => !i.is_paid_partial && !i.is_free).map((item) => {
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {unpaidItems.filter((i) => !i.is_free).map((item) => {
               const selectedQty = dutchSelected.get(item.id) || 0
+              const pct = discountPct > 0 ? discountPct : (item.discount_pct || 0)
+              const effectivePrice = item.unit_price * (1 - pct / 100)
               return (
                 <div key={item.id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-ink truncate">{item.menu_item_name}</p>
-                    <p className="text-xs text-brand font-semibold">{currency}{item.unit_price.toFixed(2)} ea</p>
+                    <p className="text-xs text-brand font-semibold">
+                      {currency}{effectivePrice.toFixed(2)} ea
+                      {pct > 0 && <span className="text-green-600 ml-1 text-[10px]">(-{pct}%)</span>}
+                    </p>
                   </div>
-                  {/* Qty stepper */}
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => {
@@ -330,8 +448,8 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
                         setDutchSelected(next)
                         setDutchBill(null)
                       }}
-                      className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"
-                    ><Minus size={10} /></button>
+                      className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"
+                    ><Minus size={12} /></button>
                     <span className="text-xs font-bold w-8 text-center">{selectedQty}/{item.quantity}</span>
                     <button
                       onClick={() => {
@@ -341,8 +459,8 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
                         setDutchSelected(next)
                         setDutchBill(null)
                       }}
-                      className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"
-                    ><Plus size={10} /></button>
+                      className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200"
+                    ><Plus size={12} /></button>
                   </div>
                 </div>
               )
@@ -352,14 +470,76 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
             <Button onClick={calcDutchBill} variant="secondary" className="w-full" size="sm">Calculate</Button>
           )}
           {dutchBill !== null && (
-            <div className="bg-surface-dark rounded-xl p-3 text-center">
-              <p className="text-gray-400 text-xs">Amount to pay</p>
+            <div className="bg-surface-dark rounded-xl p-4 text-center">
+              <p className="text-gray-400 text-xs">This person pays</p>
               <p className="text-white font-black text-2xl">{currency}{dutchBill.toFixed(2)}</p>
             </div>
           )}
           {dutchBill !== null && (
             <Button onClick={handleMarkDutchPaid} className="w-full">Mark as Paid</Button>
           )}
+        </div>
+      </Modal>
+
+      {/* Equal split modal */}
+      <Modal open={showEqualSplit} onClose={() => setShowEqualSplit(false)} title="Split Equally" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-ink-muted">Divide the remaining total equally among people:</p>
+
+          {/* Total being split */}
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-ink-muted">Remaining Total</p>
+            <p className="text-lg font-bold text-ink">{currency}{Math.max(0, remainingTotal).toFixed(2)}</p>
+          </div>
+
+          {/* Person count selector */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setSplitCount((c) => Math.max(2, c - 1))}
+              className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 active:scale-95 transition-all"
+            >
+              <Minus size={16} />
+            </button>
+            <div className="text-center">
+              <p className="text-3xl font-black text-ink">{splitCount}</p>
+              <p className="text-xs text-ink-muted">people</p>
+            </div>
+            <button
+              onClick={() => setSplitCount((c) => Math.min(20, c + 1))}
+              className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+
+          {/* Quick presets */}
+          <div className="flex justify-center gap-2">
+            {[2, 3, 4, 5, 6].map((n) => (
+              <button
+                key={n}
+                onClick={() => setSplitCount(n)}
+                className={`w-9 h-9 rounded-full text-sm font-bold transition-all ${splitCount === n ? 'bg-brand text-white scale-110' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
+          {/* Per person result */}
+          <div className="bg-surface-dark rounded-2xl p-4 text-center">
+            <p className="text-gray-400 text-xs">Per person</p>
+            <p className="text-white font-black text-3xl">{currency}{perPersonAmount.toFixed(2)}</p>
+            <p className="text-gray-500 text-[11px] mt-1">
+              {currency}{perPersonAmount.toFixed(2)} × {splitCount} = {currency}{(perPersonAmount * splitCount).toFixed(2)}
+              {parseFloat((perPersonAmount * splitCount).toFixed(2)) !== parseFloat(Math.max(0, remainingTotal).toFixed(2)) && (
+                <span className="text-amber-400 ml-1">
+                  (rounding: {currency}{Math.abs(remainingTotal - perPersonAmount * splitCount).toFixed(2)})
+                </span>
+              )}
+            </p>
+          </div>
+
+          <Button onClick={() => setShowEqualSplit(false)} variant="secondary" className="w-full">Done</Button>
         </div>
       </Modal>
     </div>

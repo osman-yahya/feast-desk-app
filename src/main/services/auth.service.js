@@ -69,11 +69,11 @@ export async function refreshCache() {
   const cached = restaurantRepo.get()
   if (!cached) return { success: false, error: 'not_connected' }
 
-  const id = parseInt(cached.restaurant_id, 10)
-  // We need the secret from the last code — we don't store it.
-  // This method is called internally only when we have the full API response.
-  // For silent refresh, we store nothing — caller must pass secret.
-  return { success: false, error: 'need_secret' }
+  const id = cached.restaurant_id
+  const secret = settingsRepo.get('restaurant_secret')
+  if (!secret) return { success: false, error: 'need_secret' }
+
+  return connectRestaurant(`${id}-${secret}`)
 }
 
 /**

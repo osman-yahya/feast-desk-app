@@ -7,7 +7,8 @@ contextBridge.exposeInMainWorld('feastAPI', {
     connect:       (code)                  => invoke('auth:connect', code),
     getRestaurant: ()                      => invoke('auth:get-restaurant'),
     disconnect:    ()                      => invoke('auth:disconnect'),
-    refresh:       (code)                  => invoke('auth:refresh', code)
+    refresh:       (code)                  => invoke('auth:refresh', code),
+    silentRefresh: ()                      => invoke('auth:silent-refresh')
   },
 
   menu: {

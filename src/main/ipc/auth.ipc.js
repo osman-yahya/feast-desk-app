@@ -1,4 +1,4 @@
-import { connectRestaurant, getRestaurant, disconnect, refreshWithCode } from '../services/auth.service.js'
+import { connectRestaurant, getRestaurant, disconnect, refreshWithCode, refreshCache } from '../services/auth.service.js'
 
 export function register(ipcMain) {
   ipcMain.handle('auth:connect', async (_, code) => {
@@ -29,6 +29,14 @@ export function register(ipcMain) {
   ipcMain.handle('auth:refresh', async (_, code) => {
     try {
       return await refreshWithCode(code)
+    } catch (err) {
+      return { success: false, error: 'unexpected', message: err.message }
+    }
+  })
+
+  ipcMain.handle('auth:silent-refresh', async () => {
+    try {
+      return await refreshCache()
     } catch (err) {
       return { success: false, error: 'unexpected', message: err.message }
     }

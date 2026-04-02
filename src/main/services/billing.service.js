@@ -15,6 +15,10 @@ export function buildBill(orderId, overrideDiscountPct) {
   let discount_total = 0
 
   const enriched = items.map((item) => {
+    // Already-paid split items: include in snapshot but zero out
+    if (item.is_paid_partial) {
+      return { ...item, line_total: 0, line_discount: 0, applied_pct: 0 }
+    }
     if (item.is_free) {
       return { ...item, line_total: 0, line_discount: item.unit_price * item.quantity }
     }
@@ -30,7 +34,7 @@ export function buildBill(orderId, overrideDiscountPct) {
 
   subtotal = parseFloat(subtotal.toFixed(2))
   discount_total = parseFloat(discount_total.toFixed(2))
-  const grand_total = parseFloat((subtotal - discount_total).toFixed(2))
+  const grand_total = Math.max(0, parseFloat((subtotal - discount_total).toFixed(2)))
 
   return { items: enriched, subtotal, discount_total, grand_total }
 }

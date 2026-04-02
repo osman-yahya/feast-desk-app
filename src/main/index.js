@@ -2,8 +2,9 @@ import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase } from './db/database.js'
+import { initDatabase, getDb } from './db/database.js'
 import { checkCacheFreshness } from './services/cache.service.js'
+import { settingsRepo } from './db/repositories/settings.repo.js'
 
 // IPC handlers
 import { register as registerAuth } from './ipc/auth.ipc.js'
@@ -98,6 +99,20 @@ app.whenReady().then(async () => {
       console.error('Cache freshness check failed:', err)
     }
   }, 3000)
+
+  // Auto-prune old data at startup (non-blocking)
+  setTimeout(() => {
+    try {
+      const days = parseInt(settingsRepo.get('data_retention_days') || '90', 10)
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+      const db = getDb()
+      db.prepare("DELETE FROM checkouts WHERE paid_at < ?").run(cutoff)
+      db.prepare("DELETE FROM orders WHERE status IN ('paid','deleted') AND closed_at < ?").run(cutoff)
+      console.log('✅ Auto-pruned old data (>' + days + ' days)')
+    } catch (err) {
+      console.error('Auto-prune failed:', err)
+    }
+  }, 5000)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
