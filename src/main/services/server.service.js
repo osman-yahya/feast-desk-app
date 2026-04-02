@@ -12,9 +12,14 @@ let serverPort = null
 let mainWindowRef = null
 let tunnelInstance = null
 let connectionMode = 'local' // 'local' | 'tunnel' | 'feast-tunnel'
+let resolveTableNameFn = null
 
 // Track connected clients by role
 const clients = { waiter: new Set(), kitchen: new Set() }
+
+export function setTableNameResolver(fn) {
+  resolveTableNameFn = fn
+}
 
 export function getLocalIP() {
   const nets = networkInterfaces()
@@ -104,19 +109,35 @@ export async function startServer(port, app, mainWindow, mode = 'local', credent
 
 export async function stopServer() {
   if (tunnelInstance) {
-    tunnelInstance.close()
+    try { tunnelInstance.close() } catch {}
     tunnelInstance = null
   }
   if (connectionMode === 'feast-tunnel') {
-    stopFeastTunnel()
+    try { stopFeastTunnel() } catch {}
   }
-  if (!httpServer) return
-  for (const ws of [...clients.waiter, ...clients.kitchen]) ws.close()
+
+  // Terminate all WS connections immediately (no close handshake)
+  for (const ws of [...clients.waiter, ...clients.kitchen]) {
+    try { ws.terminate() } catch {}
+  }
   clients.waiter.clear()
   clients.kitchen.clear()
-  await new Promise((r) => httpServer.close(r))
-  httpServer = null
-  wss = null
+
+  // Close WebSocket server
+  if (wss) {
+    try { wss.close() } catch {}
+    wss = null
+  }
+
+  // Force-close remaining HTTP connections and shut down server
+  if (httpServer) {
+    try { httpServer.closeAllConnections() } catch {}
+    await new Promise((r) => httpServer.close(r))
+    httpServer = null
+  }
+
+  // Reset all state
+  mainWindowRef = null
   connectionMode = 'local'
 }
 
@@ -176,10 +197,13 @@ function handleClientMessage(msg, ws, role, mainWindow) {
     }
   } else if (role === 'kitchen') {
     if (msg.type === 'order:done') {
-      // Kitchen marked order done — notify all waiters and main window
-      broadcastToWaiters({ type: 'order:done', tableId: msg.tableId, tableName: msg.tableName, orderId: msg.orderId })
+      // Resolve table name from DB for accuracy instead of trusting client cache
+      const tableName = resolveTableNameFn
+        ? resolveTableNameFn(msg.tableId)
+        : (msg.tableName || `Table ${msg.tableId}`)
+      broadcastToWaiters({ type: 'order:done', tableId: msg.tableId, tableName, orderId: msg.orderId })
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('server:order-done', { tableId: msg.tableId, tableName: msg.tableName })
+        mainWindow.webContents.send('server:order-done', { tableId: msg.tableId, tableName })
       }
     }
   }

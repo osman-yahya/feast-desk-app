@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { buildBill, finalizeCheckout } from '../../services/billing.service.js'
 import { orderRepo } from '../../db/repositories/order.repo.js'
 import { broadcastToAll } from '../../services/server.service.js'
+import { getDb } from '../../db/database.js'
 
 export function checkoutRoutes() {
   const router = Router()
@@ -30,7 +31,8 @@ export function checkoutRoutes() {
 
       // Broadcast to all clients so kitchen + waiters know the order is closed
       if (order && order.table_id) {
-        broadcastToAll({ type: 'order:paid', tableId: order.table_id, orderId })
+        const tbl = getDb().prepare('SELECT name FROM tables WHERE id = ?').get(order.table_id)
+        broadcastToAll({ type: 'order:paid', tableId: order.table_id, tableName: tbl?.name || `Table ${order.table_id}`, orderId })
       }
 
       res.json({ success: true, checkout })

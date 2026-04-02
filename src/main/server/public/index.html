@@ -841,14 +841,14 @@ function addReadyItem(tableId, tableName) {
   if (currentTab === 'ready') renderReadyList()
   // Show persistent banner — stays until user dismisses or visits Ready tab
   const count = readyList.length
-  showReadyBanner(count === 1 ? tableName : `${count} tables ready`)
+  showReadyBanner(count === 1 ? `✅ ${tableName} is ready!` : `✅ ${count} tables ready!`)
 }
 
-function showReadyBanner(tableName) {
+function showReadyBanner(msg) {
   const banner = document.getElementById('ready-banner')
   const text = document.getElementById('ready-banner-text')
   if (banner && text) {
-    text.textContent = `✅ Table ${tableName} is ready!`
+    text.textContent = msg
     banner.style.display = 'flex'
   }
 }
@@ -886,7 +886,7 @@ function dismissReady(id) {
   updateReadyBadge()
   renderReadyList()
   if (readyList.length === 0) dismissReadyBanner()
-  else showReadyBanner(readyList.length === 1 ? readyList[0].tableName : `${readyList.length} tables ready`)
+  else showReadyBanner(readyList.length === 1 ? `✅ ${readyList[0].tableName} is ready!` : `✅ ${readyList.length} tables ready!`)
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1263,9 +1263,11 @@ function handleKitchenMsg(msg) {
     scheduleKitchenRefresh()
   }
   if (msg.type === 'order:paid') {
+    const paidOrder = kitchenOrders.get(msg.tableId)
+    const paidName = paidOrder ? paidOrder.tableName : (msg.tableName || `Table ${msg.tableId}`)
     kitchenOrders.delete(msg.tableId)
     renderKitchenOrders()
-    showNotif(`💰 Order paid — Table ${msg.tableId}`)
+    showNotif(`💰 Order paid — ${paidName}`)
   }
 }
 
