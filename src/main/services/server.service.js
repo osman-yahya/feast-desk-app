@@ -2,15 +2,24 @@ import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import { networkInterfaces } from 'os'
 import QRCode from 'qrcode'
+import localtunnel from 'localtunnel'
+import { startFeastTunnel, stopFeastTunnel, getFeastTunnelStatus } from './feast-tunnel.service.js'
 
 let httpServer = null
 let wss = null
 let localIP = null
 let serverPort = null
 let mainWindowRef = null
+let tunnelInstance = null
+let connectionMode = 'local' // 'local' | 'tunnel' | 'feast-tunnel'
+let resolveTableNameFn = null
 
 // Track connected clients by role
 const clients = { waiter: new Set(), kitchen: new Set() }
+
+export function setTableNameResolver(fn) {
+  resolveTableNameFn = fn
+}
 
 export function getLocalIP() {
   const nets = networkInterfaces()
@@ -22,12 +31,13 @@ export function getLocalIP() {
   return '127.0.0.1'
 }
 
-export async function startServer(port, app, mainWindow) {
+export async function startServer(port, app, mainWindow, mode = 'local', credentials = null) {
   if (httpServer) return { success: false, error: 'already_running' }
 
   serverPort = port || 3737
   localIP = getLocalIP()
   mainWindowRef = mainWindow
+  connectionMode = mode
 
   httpServer = createServer(app)
   wss = new WebSocketServer({ server: httpServer, path: '/ws' })
@@ -57,32 +67,98 @@ export async function startServer(port, app, mainWindow) {
     httpServer.on('error', reject)
   })
 
-  return { success: true, port: serverPort, ip: localIP }
+  // Start localtunnel if mode is 'tunnel'
+  if (mode === 'tunnel') {
+    try {
+      tunnelInstance = await localtunnel({ port: serverPort })
+      tunnelInstance.on('close', () => { tunnelInstance = null })
+    } catch (err) {
+      await stopServer()
+      return { success: false, error: `Tunnel failed: ${err.message}` }
+    }
+  }
+
+  // Start feast tunnel if mode is 'feast-tunnel'
+  if (mode === 'feast-tunnel') {
+    if (!credentials?.restaurantId || !credentials?.secret) {
+      await stopServer()
+      return { success: false, error: 'Restaurant credentials required for feast tunnel' }
+    }
+    const result = await startFeastTunnel(serverPort, credentials.restaurantId, credentials.secret)
+    if (!result.success) {
+      await stopServer()
+      return { success: false, error: result.error }
+    }
+    return {
+      success: true,
+      port: serverPort,
+      ip: localIP,
+      mode: connectionMode,
+      tunnelUrl: result.tunnelUrl
+    }
+  }
+
+  return {
+    success: true,
+    port: serverPort,
+    ip: localIP,
+    mode: connectionMode,
+    tunnelUrl: tunnelInstance?.url || null
+  }
 }
 
 export async function stopServer() {
-  if (!httpServer) return
-  for (const ws of [...clients.waiter, ...clients.kitchen]) ws.close()
+  if (tunnelInstance) {
+    try { tunnelInstance.close() } catch {}
+    tunnelInstance = null
+  }
+  if (connectionMode === 'feast-tunnel') {
+    try { stopFeastTunnel() } catch {}
+  }
+
+  // Terminate all WS connections immediately (no close handshake)
+  for (const ws of [...clients.waiter, ...clients.kitchen]) {
+    try { ws.terminate() } catch {}
+  }
   clients.waiter.clear()
   clients.kitchen.clear()
-  await new Promise((r) => httpServer.close(r))
-  httpServer = null
-  wss = null
+
+  // Close WebSocket server
+  if (wss) {
+    try { wss.close() } catch {}
+    wss = null
+  }
+
+  // Force-close remaining HTTP connections and shut down server
+  if (httpServer) {
+    try { httpServer.closeAllConnections() } catch {}
+    await new Promise((r) => httpServer.close(r))
+    httpServer = null
+  }
+
+  // Reset all state
+  mainWindowRef = null
+  connectionMode = 'local'
 }
 
 export function getServerStatus() {
+  const feastTunnel = connectionMode === 'feast-tunnel' ? getFeastTunnelStatus() : null
   return {
     running: !!httpServer,
     port: serverPort,
     ip: localIP,
+    mode: connectionMode,
+    tunnelUrl: tunnelInstance?.url || feastTunnel?.tunnelUrl || null,
     waiter_clients: clients.waiter.size,
     kitchen_clients: clients.kitchen.size
   }
 }
 
-export async function generateQR() {
+export async function generateQR(role = 'waiter') {
   if (!httpServer) return null
-  const url = `http://${localIP}:${serverPort}/waiter`
+  const feastTunnel = connectionMode === 'feast-tunnel' ? getFeastTunnelStatus() : null
+  const baseUrl = tunnelInstance?.url || feastTunnel?.tunnelUrl || `http://${localIP}:${serverPort}`
+  const url = role === 'kitchen' ? `${baseUrl}?role=kitchen` : `${baseUrl}/waiter`
   return QRCode.toDataURL(url)
 }
 
@@ -121,10 +197,13 @@ function handleClientMessage(msg, ws, role, mainWindow) {
     }
   } else if (role === 'kitchen') {
     if (msg.type === 'order:done') {
-      // Kitchen marked order done — notify all waiters and main window
-      broadcastToWaiters({ type: 'order:done', tableId: msg.tableId, tableName: msg.tableName, orderId: msg.orderId })
+      // Resolve table name from DB for accuracy instead of trusting client cache
+      const tableName = resolveTableNameFn
+        ? resolveTableNameFn(msg.tableId)
+        : (msg.tableName || `Table ${msg.tableId}`)
+      broadcastToWaiters({ type: 'order:done', tableId: msg.tableId, tableName, orderId: msg.orderId })
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('server:order-done', { tableId: msg.tableId, tableName: msg.tableName })
+        mainWindow.webContents.send('server:order-done', { tableId: msg.tableId, tableName })
       }
     }
   }

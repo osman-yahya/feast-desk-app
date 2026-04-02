@@ -51,7 +51,7 @@ contextBridge.exposeInMainWorld('feastAPI', {
   },
 
   server: {
-    start:  () => invoke('server:start'),
+    start:  (mode) => invoke('server:start', mode),
     stop:   () => invoke('server:stop'),
     status: () => invoke('server:status'),
     qr:     () => invoke('server:qr')
