@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ShoppingCart, Trash2, CreditCard, Plus, Minus, Tag, ChevronRight } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal.jsx'
 import { Button } from '../../components/ui/Button.jsx'
@@ -8,6 +9,7 @@ import { useSettingsStore } from '../../store/useSettingsStore.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 
 export function DirectOrderPage() {
+  const { t } = useTranslation()
   const menu = useRestaurantStore((s) => s.menu)
   const { directOrder, directItems, createOrder, addItem, removeItem, updateItem, clearDirectOrder } = useOrderStore()
   const { discounts, settings } = useSettingsStore()
@@ -70,14 +72,14 @@ export function DirectOrderPage() {
     )
     setFinalizing(false)
     if (result.success) {
-      toast(`Checkout complete — ${currency}${result.checkout.grand_total.toFixed(2)}`, 'success')
+      toast(t('directOrder.checkoutComplete', { currency, amount: result.checkout.grand_total.toFixed(2) }), 'success')
       setShowCheckout(false)
       clearDirectOrder()
       setBill(null)
       setDiscountPct(0)
       setManualDiscount('')
     } else {
-      toast(result.error || 'Checkout failed', 'error')
+      toast(result.error || t('directOrder.checkoutFailed'), 'error')
     }
   }
 
@@ -92,11 +94,11 @@ export function DirectOrderPage() {
       {/* ── Left: Category list ── */}
       <div className="w-44 flex-shrink-0 bg-white border-r border-border-warm flex flex-col h-full overflow-hidden">
         <div className="px-4 py-3 border-b border-border-warm flex-shrink-0">
-          <h2 className="font-bold text-xs text-ink-muted uppercase tracking-wider">Categories</h2>
+          <h2 className="font-bold text-xs text-ink-muted uppercase tracking-wider">{t('directOrder.categories')}</h2>
         </div>
         <div className="flex-1 overflow-y-auto py-2 px-2">
           {categories.length === 0 ? (
-            <p className="text-xs text-ink-muted px-2 py-4 text-center">No categories</p>
+            <p className="text-xs text-ink-muted px-2 py-4 text-center">{t('directOrder.noCategories')}</p>
           ) : (
             categories.map((cat, i) => (
               <button
@@ -122,16 +124,16 @@ export function DirectOrderPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Category title bar */}
         <div className="px-5 py-3 border-b border-border-warm bg-white flex-shrink-0 flex items-center gap-2">
-          <h1 className="font-bold text-base text-ink">{activeCategory?.name || 'Select a category'}</h1>
+          <h1 className="font-bold text-base text-ink">{activeCategory?.name || t('directOrder.selectCategory')}</h1>
           {activeItems.length > 0 && (
-            <span className="text-xs text-ink-muted font-medium">{activeItems.length} items</span>
+            <span className="text-xs text-ink-muted font-medium">{activeItems.length} {t('common.items')}</span>
           )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
           {activeItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center">
-              <p className="text-sm text-ink-muted">No items in this category</p>
+              <p className="text-sm text-ink-muted">{t('directOrder.noItems')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -164,7 +166,7 @@ export function DirectOrderPage() {
                     </p>
                     {item.sold_out && (
                       <span className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl text-xs font-bold text-gray-400">
-                        Sold Out
+                        {t('directOrder.soldOut')}
                       </span>
                     )}
                   </button>
@@ -181,7 +183,7 @@ export function DirectOrderPage() {
         <div className="px-4 py-3 border-b border-border-warm flex-shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingCart size={15} className="text-brand" />
-            <span className="font-bold text-sm text-ink">Order</span>
+            <span className="font-bold text-sm text-ink">{t('directOrder.order')}</span>
             {totalItems > 0 && (
               <span className="bg-brand text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                 {totalItems}
@@ -190,10 +192,10 @@ export function DirectOrderPage() {
           </div>
           {directItems.length > 0 && (
             <button
-              onClick={() => { clearDirectOrder(); toast('Order cleared', 'info') }}
+              onClick={() => { clearDirectOrder(); toast(t('directOrder.orderCleared'), 'info') }}
               className="text-[11px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
             >
-              <Trash2 size={11} /> Clear
+              <Trash2 size={11} /> {t('directOrder.clear')}
             </button>
           )}
         </div>
@@ -203,7 +205,7 @@ export function DirectOrderPage() {
           {directItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-8">
               <ShoppingCart size={28} className="text-gray-200" />
-              <p className="text-xs text-ink-muted">Tap items to add them here</p>
+              <p className="text-xs text-ink-muted">{t('directOrder.tapToAdd')}</p>
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -240,7 +242,7 @@ export function DirectOrderPage() {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Tag size={11} className="text-ink-muted" />
-              <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Discount</span>
+              <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">{t('common.discount')}</span>
             </div>
 
             {/* Predefined chips */}
@@ -252,7 +254,7 @@ export function DirectOrderPage() {
                     effectiveDiscount === 0 ? 'bg-brand text-white' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'
                   }`}
                 >
-                  None
+                  {t('common.none')}
                 </button>
                 {discounts.map((d) => (
                   <button
@@ -301,16 +303,16 @@ export function DirectOrderPage() {
           {directItems.length > 0 && (
             <div className="bg-surface-dark rounded-xl p-3 space-y-1">
               <div className="flex justify-between text-xs text-gray-400">
-                <span>Subtotal</span><span>{currency}{cartSubtotal.toFixed(2)}</span>
+                <span>{t('common.subtotal')}</span><span>{currency}{cartSubtotal.toFixed(2)}</span>
               </div>
               {effectiveDiscount > 0 && (
                 <div className="flex justify-between text-xs text-green-400">
-                  <span>Discount {effectiveDiscount}%</span>
+                  <span>{t('common.discount')} {effectiveDiscount}%</span>
                   <span>-{currency}{discountAmount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-sm text-white pt-1 border-t border-white/10">
-                <span>Total</span><span>{currency}{grandTotal.toFixed(2)}</span>
+                <span>{t('common.total')}</span><span>{currency}{grandTotal.toFixed(2)}</span>
               </div>
             </div>
           )}
@@ -321,13 +323,13 @@ export function DirectOrderPage() {
             className="w-full"
             icon={CreditCard}
           >
-            Checkout
+            {t('directOrder.checkout')}
           </Button>
         </div>
       </div>
 
       {/* Checkout modal */}
-      <Modal open={showCheckout} onClose={() => setShowCheckout(false)} title="Checkout" size="md">
+      <Modal open={showCheckout} onClose={() => setShowCheckout(false)} title={t('directOrder.checkout')} size="md">
         {bill && (
           <div className="space-y-4">
             <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -341,34 +343,34 @@ export function DirectOrderPage() {
               ))}
             </div>
             <div className="border-t border-border-warm pt-3 space-y-1.5">
-              <div className="flex justify-between text-sm text-ink-muted"><span>Subtotal</span><span>{currency}{bill.subtotal.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm text-ink-muted"><span>{t('common.subtotal')}</span><span>{currency}{bill.subtotal.toFixed(2)}</span></div>
               {bill.discount_total > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
-                  <span>Discount ({effectiveDiscount}%)</span><span>-{currency}{bill.discount_total.toFixed(2)}</span>
+                  <span>{t('common.discount')} ({effectiveDiscount}%)</span><span>-{currency}{bill.discount_total.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-base text-ink pt-1 border-t border-border-warm">
-                <span>Total</span><span className="text-brand">{currency}{bill.grand_total.toFixed(2)}</span>
+                <span>{t('common.total')}</span><span className="text-brand">{currency}{bill.grand_total.toFixed(2)}</span>
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-ink-muted uppercase tracking-wide block mb-2">Payment</label>
+              <label className="text-xs font-semibold text-ink-muted uppercase tracking-wide block mb-2">{t('common.payment')}</label>
               <div className="flex gap-2">
                 {['cash', 'card', 'other'].map((m) => (
                   <button key={m} onClick={() => setPaymentMethod(m)}
                     className={`flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${paymentMethod === m ? 'bg-brand text-white' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}
-                  >{m}</button>
+                  >{t(`common.${m}`)}</button>
                 ))}
               </div>
             </div>
             <input
               value={checkoutNote}
               onChange={(e) => setCheckoutNote(e.target.value)}
-              placeholder="Note (optional)"
+              placeholder={t('directOrder.noteOptional')}
               className="w-full border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand"
             />
             <Button onClick={handleFinalize} loading={finalizing} className="w-full" size="lg">
-              Confirm Payment
+              {t('directOrder.confirmPayment')}
             </Button>
           </div>
         )}

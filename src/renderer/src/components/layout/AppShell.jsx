@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Sidebar } from './Sidebar.jsx'
 import { TopBar } from './TopBar.jsx'
 import { Modal } from '../ui/Modal.jsx'
@@ -8,6 +9,7 @@ import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
 
 export function AppShell() {
+  const { t } = useTranslation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem('sidebarCollapsed') === 'true'
   )
@@ -59,17 +61,17 @@ export function AppShell() {
         </main>
       </div>
 
-      <Modal open={showRefreshModal} onClose={() => setShowRefreshModal(false)} title="Refresh Menu Data" size="sm">
-        <p className="text-sm text-ink-muted mb-4">Enter your connection code to refresh the cached menu data.</p>
+      <Modal open={showRefreshModal} onClose={() => setShowRefreshModal(false)} title={t('appShell.refreshTitle')} size="sm">
+        <p className="text-sm text-ink-muted mb-4">{t('appShell.refreshHint')}</p>
         <input
           value={refreshCode}
           onChange={(e) => setRefreshCode(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleRefresh()}
-          placeholder="e.g. 12345-ABC123"
+          placeholder={t('appShell.refreshPlaceholder')}
           className="w-full border border-border-warm rounded-xl px-4 py-2.5 text-sm text-ink placeholder:text-gray-400 focus:outline-none focus:border-brand transition-colors mb-3"
         />
         {refreshError && <p className="text-xs text-red-500 mb-3">{refreshError}</p>}
-        <Button onClick={handleRefresh} loading={refreshing} className="w-full">Refresh</Button>
+        <Button onClick={handleRefresh} loading={refreshing} className="w-full">{t('common.refresh')}</Button>
       </Modal>
     </div>
   )

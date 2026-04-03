@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Plus, Minus, CreditCard, Tag, Gift, Users, Trash2, SplitSquareVertical, Hash } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
 import { ConfirmLock } from '../../components/ui/ConfirmLock.jsx'
@@ -16,6 +17,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
   const { discounts } = useSettingsStore()
   const { updateTableStatusLocally } = useTableStore()
   const toast = useToast()
+  const { t } = useTranslation()
 
   const [showAddItems, setShowAddItems] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
@@ -118,14 +120,14 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     const result = await window.feastAPI.checkout.finalize(order.id, paymentMethod, appliedDiscount, cashierNote || null)
     setFinalizing(false)
     if (result.success) {
-      toast(`Table ${table?.name} — Paid ${currency}${result.checkout.grand_total.toFixed(2)}`, 'success')
+      toast(t('tableDrawer.tablePaid', { name: table?.name, currency, amount: result.checkout.grand_total.toFixed(2) }), 'success')
       setShowCheckout(false)
       setAppliedDiscount(null)
       clearTableOrder(tableId)
       updateTableStatusLocally(tableId, 'empty')
       onClose()
     } else {
-      toast(result.error || 'Checkout failed', 'error')
+      toast(result.error || t('directOrder.checkoutFailed'), 'error')
     }
   }
 
@@ -134,7 +136,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
     await window.feastAPI.checkout.deleteOrder(order.id)
     clearTableOrder(tableId)
     updateTableStatusLocally(tableId, 'empty')
-    toast('Order deleted', 'info')
+    toast(t('tableDrawer.orderDeleted'), 'info')
     onClose()
   }
 
@@ -167,7 +169,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       .map(([itemId]) => itemId)
     if (fullItemIds.length) await window.feastAPI.checkout.markPartialPaid(fullItemIds)
     await loadTableOrder(tableId)
-    toast(`Partial payment recorded — ${currency}${dutchBill?.toFixed(2)}`, 'success')
+    toast(t('tableDrawer.partialPayment', { currency, amount: dutchBill?.toFixed(2) }), 'success')
     setShowDutch(false)
   }
 
@@ -185,8 +187,8 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-warm flex-shrink-0">
         <div>
-          <h2 className="font-bold text-sm text-ink">Table {table?.name}</h2>
-          <p className="text-xs text-ink-muted">{items.length} items</p>
+          <h2 className="font-bold text-sm text-ink">{t('tableDrawer.table', { name: table?.name })}</h2>
+          <p className="text-xs text-ink-muted">{items.length} {t('common.items')}</p>
         </div>
         <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           <X size={16} className="text-ink-muted" />
@@ -197,8 +199,8 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 gap-2 text-center">
-            <p className="text-sm text-ink-muted">No items yet</p>
-            <Button size="sm" icon={Plus} onClick={() => setShowAddItems(true)}>Add Items</Button>
+            <p className="text-sm text-ink-muted">{t('tableDrawer.noItems')}</p>
+            <Button size="sm" icon={Plus} onClick={() => setShowAddItems(true)}>{t('tableDrawer.addItems')}</Button>
           </div>
         ) : (
           items.map((item) => (
@@ -247,7 +249,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
           <div className="flex flex-wrap gap-1">
             <button onClick={() => setDiscountPct(0)}
               className={`px-2 py-0.5 rounded-pill text-xs font-medium ${discountPct === 0 ? 'bg-brand text-white' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}>
-              No discount
+              {t('tableDrawer.noDiscount')}
             </button>
             {discounts.map((d) => (
               <button key={d.id} onClick={() => setDiscountPct(d.pct)}
@@ -263,13 +265,13 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
           <div className="space-y-1 px-1">
             {paidPartialTotal > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-blue-500">Already paid (split)</span>
+                <span className="text-[11px] text-blue-500">{t('tableDrawer.alreadyPaid')}</span>
                 <span className="text-[11px] text-blue-500 font-semibold">{currency}{paidPartialTotal.toFixed(2)}</span>
               </div>
             )}
             <div className="flex items-center justify-between">
               <span className="text-xs text-ink-muted">
-                {discountPct > 0 ? `Remaining (${discountPct}% off)` : 'Remaining'}
+                {discountPct > 0 ? t('tableDrawer.remainingWithDiscount', { pct: discountPct }) : t('tableDrawer.remaining')}
               </span>
               <span className="font-bold text-sm text-brand">
                 {currency}{Math.max(0, remainingTotal).toFixed(2)}
@@ -280,12 +282,12 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" icon={Plus} onClick={() => setShowAddItems(true)} className="flex-1">
-            Add Items
+            {t('tableDrawer.addItems')}
           </Button>
           {items.length > 0 && (
             <>
               <Button size="sm" variant="secondary" icon={Users} onClick={openDutch} title="Split by items">
-                Split
+                {t('tableDrawer.split')}
               </Button>
               <Button size="sm" variant="secondary" icon={Hash} onClick={openEqualSplit} title="Split equally">
                 ÷N
@@ -296,17 +298,17 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
         {items.length > 0 && (
           <Button icon={CreditCard} onClick={openCheckout} className="w-full">
-            Checkout
+            {t('tableDrawer.checkout')}
           </Button>
         )}
 
         {order && (
-          <ConfirmLock onConfirm={handleDeleteOrder} label="Hold to Delete Order" className="w-full justify-center" />
+          <ConfirmLock onConfirm={handleDeleteOrder} label={t('tableDrawer.holdToDelete')} className="w-full justify-center" />
         )}
       </div>
 
       {/* Add items modal */}
-      <Modal open={showAddItems} onClose={() => setShowAddItems(false)} title="Add Items" size="lg">
+      <Modal open={showAddItems} onClose={() => setShowAddItems(false)} title={t('tableDrawer.addItems')} size="lg">
         <div className="flex gap-4 h-96">
           {/* Category list */}
           <div className="w-40 flex-shrink-0 border-r border-border-warm pr-3 overflow-y-auto">
@@ -326,7 +328,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
                   className={`text-left p-4 border border-border-warm rounded-xl transition-all active:scale-95 ${item.sold_out ? 'opacity-50' : 'hover:border-brand hover:bg-brand-pale active:bg-brand-pale'}`}>
                   <p className="text-sm font-semibold text-ink leading-tight">{item.name}</p>
                   <p className="text-sm text-brand font-bold mt-1">{currency}{parseFloat(item.price).toFixed(2)}</p>
-                  {item.sold_out && <p className="text-xs text-gray-400 mt-0.5">Sold out</p>}
+                  {item.sold_out && <p className="text-xs text-gray-400 mt-0.5">{t('tableDrawer.soldOut')}</p>}
                 </button>
               ))}
             </div>
@@ -335,12 +337,12 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       </Modal>
 
       {/* Checkout modal — expanded */}
-      <Modal open={showCheckout} onClose={() => { setShowCheckout(false); setAppliedDiscount(null) }} title={`Checkout — Table ${table?.name}`} size="lg">
+      <Modal open={showCheckout} onClose={() => { setShowCheckout(false); setAppliedDiscount(null) }} title={t('tableDrawer.checkoutTable', { name: table?.name })} size="lg">
         {bill && (
           <div className="flex gap-6">
             {/* Left: item breakdown */}
             <div className="flex-1 min-w-0 space-y-4">
-              <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">Order Items</h3>
+              <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{t('tableDrawer.orderItems')}</h3>
               <div className="space-y-1.5 max-h-64 overflow-y-auto pr-2">
                 {bill.items.map((item) => (
                   <div key={item.id} className={`flex justify-between text-sm py-1.5 ${item.is_paid_partial ? 'opacity-40' : ''}`}>
@@ -361,12 +363,12 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
               {/* Cashier note */}
               <div>
-                <label className="text-xs text-ink-muted block mb-1">Note (optional)</label>
+                <label className="text-xs text-ink-muted block mb-1">{t('directOrder.noteOptional')}</label>
                 <input
                   type="text"
                   value={cashierNote}
                   onChange={(e) => setCashierNote(e.target.value)}
-                  placeholder="e.g. customer feedback, special request..."
+                  placeholder={t('tableDrawer.notePlaceholder')}
                   className="w-full border border-border-warm rounded-xl px-3 py-2 text-sm text-ink placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </div>
@@ -377,24 +379,24 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
               {/* Bill summary card */}
               <div className="bg-surface-dark rounded-2xl p-4 space-y-2">
                 <div className="flex justify-between text-sm text-gray-400">
-                  <span>Subtotal</span>
+                  <span>{t('common.subtotal')}</span>
                   <span>{currency}{bill.subtotal.toFixed(2)}</span>
                 </div>
                 {bill.discount_total > 0 && (
                   <div className="flex justify-between text-sm text-green-400">
-                    <span>Discount</span>
+                    <span>{t('common.discount')}</span>
                     <span>-{currency}{bill.discount_total.toFixed(2)}</span>
                   </div>
                 )}
                 {paidPartialTotal > 0 && (
                   <div className="flex justify-between text-sm text-blue-400">
-                    <span>Paid (split)</span>
+                    <span>{t('tableDrawer.paidSplit')}</span>
                     <span>-{currency}{paidPartialTotal.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-700 pt-2">
                   <div className="flex justify-between font-bold text-lg text-white">
-                    <span>Total</span>
+                    <span>{t('common.total')}</span>
                     <span>{currency}{bill.grand_total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -402,19 +404,19 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
               {/* Payment method */}
               <div>
-                <p className="text-xs text-ink-muted mb-2">Payment Method</p>
+                <p className="text-xs text-ink-muted mb-2">{t('tableDrawer.paymentMethod')}</p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {['cash', 'card', 'other'].map((m) => (
                     <button key={m} onClick={() => setPaymentMethod(m)}
                       className={`py-2.5 rounded-xl text-sm font-semibold capitalize transition-all ${paymentMethod === m ? 'bg-brand text-white shadow-md scale-105' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}>
-                      {m}
+                      {t('common.' + m)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <Button onClick={handleFinalize} loading={finalizing} className="w-full" size="lg">
-                Confirm Payment
+                {t('directOrder.confirmPayment')}
               </Button>
             </div>
           </div>
@@ -422,9 +424,9 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       </Modal>
 
       {/* Dutch treat modal (split by items) */}
-      <Modal open={showDutch} onClose={() => setShowDutch(false)} title="Split by Items" size="md">
+      <Modal open={showDutch} onClose={() => setShowDutch(false)} title={t('tableDrawer.splitByItems')} size="md">
         <div className="space-y-3">
-          <p className="text-sm text-ink-muted">Select items and quantities for this person:</p>
+          <p className="text-sm text-ink-muted">{t('tableDrawer.selectItemsHint')}</p>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {unpaidItems.filter((i) => !i.is_free).map((item) => {
               const selectedQty = dutchSelected.get(item.id) || 0
@@ -467,28 +469,28 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
             })}
           </div>
           {dutchSelected.size > 0 && (
-            <Button onClick={calcDutchBill} variant="secondary" className="w-full" size="sm">Calculate</Button>
+            <Button onClick={calcDutchBill} variant="secondary" className="w-full" size="sm">{t('tableDrawer.calculate')}</Button>
           )}
           {dutchBill !== null && (
             <div className="bg-surface-dark rounded-xl p-4 text-center">
-              <p className="text-gray-400 text-xs">This person pays</p>
+              <p className="text-gray-400 text-xs">{t('tableDrawer.thisPersonPays')}</p>
               <p className="text-white font-black text-2xl">{currency}{dutchBill.toFixed(2)}</p>
             </div>
           )}
           {dutchBill !== null && (
-            <Button onClick={handleMarkDutchPaid} className="w-full">Mark as Paid</Button>
+            <Button onClick={handleMarkDutchPaid} className="w-full">{t('tableDrawer.markAsPaid')}</Button>
           )}
         </div>
       </Modal>
 
       {/* Equal split modal */}
-      <Modal open={showEqualSplit} onClose={() => setShowEqualSplit(false)} title="Split Equally" size="sm">
+      <Modal open={showEqualSplit} onClose={() => setShowEqualSplit(false)} title={t('tableDrawer.splitEqually')} size="sm">
         <div className="space-y-4">
-          <p className="text-sm text-ink-muted">Divide the remaining total equally among people:</p>
+          <p className="text-sm text-ink-muted">{t('tableDrawer.divideHint')}</p>
 
           {/* Total being split */}
           <div className="bg-gray-50 rounded-xl p-3 text-center">
-            <p className="text-xs text-ink-muted">Remaining Total</p>
+            <p className="text-xs text-ink-muted">{t('tableDrawer.remainingTotal')}</p>
             <p className="text-lg font-bold text-ink">{currency}{Math.max(0, remainingTotal).toFixed(2)}</p>
           </div>
 
@@ -502,7 +504,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
             </button>
             <div className="text-center">
               <p className="text-3xl font-black text-ink">{splitCount}</p>
-              <p className="text-xs text-ink-muted">people</p>
+              <p className="text-xs text-ink-muted">{t('common.people')}</p>
             </div>
             <button
               onClick={() => setSplitCount((c) => Math.min(20, c + 1))}
@@ -527,19 +529,19 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
 
           {/* Per person result */}
           <div className="bg-surface-dark rounded-2xl p-4 text-center">
-            <p className="text-gray-400 text-xs">Per person</p>
+            <p className="text-gray-400 text-xs">{t('tableDrawer.perPerson')}</p>
             <p className="text-white font-black text-3xl">{currency}{perPersonAmount.toFixed(2)}</p>
             <p className="text-gray-500 text-[11px] mt-1">
               {currency}{perPersonAmount.toFixed(2)} × {splitCount} = {currency}{(perPersonAmount * splitCount).toFixed(2)}
               {parseFloat((perPersonAmount * splitCount).toFixed(2)) !== parseFloat(Math.max(0, remainingTotal).toFixed(2)) && (
                 <span className="text-amber-400 ml-1">
-                  (rounding: {currency}{Math.abs(remainingTotal - perPersonAmount * splitCount).toFixed(2)})
+                  {t('tableDrawer.rounding', { currency, amount: Math.abs(remainingTotal - perPersonAmount * splitCount).toFixed(2) })}
                 </span>
               )}
             </p>
           </div>
 
-          <Button onClick={() => setShowEqualSplit(false)} variant="secondary" className="w-full">Done</Button>
+          <Button onClick={() => setShowEqualSplit(false)} variant="secondary" className="w-full">{t('common.done')}</Button>
         </div>
       </Modal>
     </div>

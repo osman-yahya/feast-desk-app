@@ -1,6 +1,7 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { ShoppingCart, LayoutGrid, BarChart2, Wifi, Settings, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { getAccessibleModules, MODULE_CONFIG } from '../../config/modules.config.js'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 
@@ -9,10 +10,19 @@ const iconMap = {
 }
 
 export function Sidebar({ collapsed, onToggle }) {
+  const { t } = useTranslation()
   const level = useRestaurantStore((s) => s.level)
   const restaurant = useRestaurantStore((s) => s.restaurant)
   const accessible = getAccessibleModules(level)
   const accessibleIds = new Set(accessible.map((m) => m.id))
+
+  const moduleLabels = {
+    direct_order: t('modules.directOrder'),
+    tables: t('modules.tables'),
+    analyze: t('modules.analyze'),
+    server: t('modules.server'),
+    settings: t('modules.settings')
+  }
 
   return (
     <aside
@@ -38,7 +48,7 @@ export function Sidebar({ collapsed, onToggle }) {
               key={mod.id}
               to={isLocked ? '#' : mod.path}
               onClick={(e) => isLocked && e.preventDefault()}
-              title={collapsed ? (isLocked ? `${mod.label} — requires level ${mod.minLevel}` : mod.label) : undefined}
+              title={collapsed ? (isLocked ? `${moduleLabels[mod.id] || mod.label} — ${t('modules.requiresLevel', { level: mod.minLevel })}` : (moduleLabels[mod.id] || mod.label)) : undefined}
               className={({ isActive }) => [
                 'flex items-center rounded-xl text-sm font-medium transition-all',
                 collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5',
@@ -52,7 +62,7 @@ export function Sidebar({ collapsed, onToggle }) {
               <Icon size={17} className="flex-shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="flex-1 truncate">{mod.label}</span>
+                  <span className="flex-1 truncate">{moduleLabels[mod.id] || mod.label}</span>
                   {isLocked && <Lock size={11} className="flex-shrink-0 opacity-50" />}
                 </>
               )}
@@ -93,7 +103,7 @@ export function Sidebar({ collapsed, onToggle }) {
               )}
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-ink truncate">{restaurant.restaurant_name}</p>
-                <p className="text-[10px] text-ink-muted">Level {restaurant.level}</p>
+                <p className="text-[10px] text-ink-muted">{t('common.level')} {restaurant.level}</p>
               </div>
             </div>
           )}
@@ -109,7 +119,7 @@ export function Sidebar({ collapsed, onToggle }) {
         {collapsed ? <ChevronRight size={14} /> : (
           <>
             <ChevronLeft size={14} />
-            <span className="text-xs font-medium">Collapse</span>
+            <span className="text-xs font-medium">{t('common.collapse')}</span>
           </>
         )}
       </button>

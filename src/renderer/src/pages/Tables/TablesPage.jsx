@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Edit3 } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
@@ -15,6 +16,7 @@ export function TablesPage({ editorMode: editorModeProp = false }) {
     loadFloors, loadFloor, createFloor
   } = useTableStore()
   const toast = useToast()
+  const { t } = useTranslation()
 
   const [selectedTableId, setSelectedTableId] = useState(null)
   const [showAddFloor, setShowAddFloor] = useState(false)
@@ -41,7 +43,7 @@ export function TablesPage({ editorMode: editorModeProp = false }) {
     await createFloor(newFloorName.trim())
     setNewFloorName('')
     setShowAddFloor(false)
-    toast('Floor added', 'success')
+    toast(t('tables.floorAdded'), 'success')
   }
 
   function handleTableSelect(table) {
@@ -63,13 +65,13 @@ export function TablesPage({ editorMode: editorModeProp = false }) {
       <div className="flex-1 flex flex-col gap-4 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
-          <h1 className="font-bold text-xl text-ink">Tables</h1>
+          <h1 className="font-bold text-xl text-ink">{t('tables.tables')}</h1>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" icon={Edit3} onClick={() => setLocalEditorMode(true)}>
-              Edit Layout
+              {t('tables.editLayout')}
             </Button>
             <Button size="sm" icon={Plus} onClick={() => setShowAddFloor(true)}>
-              Add Floor
+              {t('tables.addFloor')}
             </Button>
           </div>
         </div>
@@ -101,10 +103,10 @@ export function TablesPage({ editorMode: editorModeProp = false }) {
                 <Plus size={28} className="text-gray-400" />
               </div>
               <div>
-                <p className="font-semibold text-ink">No floors yet</p>
-                <p className="text-sm text-ink-muted mt-1">Add a floor, then use Edit Layout to place tables</p>
+                <p className="font-semibold text-ink">{t('tables.noFloors')}</p>
+                <p className="text-sm text-ink-muted mt-1">{t('tables.noFloorsHint')}</p>
               </div>
-              <Button icon={Plus} onClick={() => setShowAddFloor(true)}>Add First Floor</Button>
+              <Button icon={Plus} onClick={() => setShowAddFloor(true)}>{t('tables.addFirstFloor')}</Button>
             </div>
           ) : (
             <FloorGrid
@@ -127,18 +129,18 @@ export function TablesPage({ editorMode: editorModeProp = false }) {
       )}
 
       {/* Add floor modal */}
-      <Modal open={showAddFloor} onClose={() => setShowAddFloor(false)} title="Add Floor" size="sm">
+      <Modal open={showAddFloor} onClose={() => setShowAddFloor(false)} title={t('tables.addFloor')} size="sm">
         <div className="space-y-4">
           <input
             value={newFloorName}
             onChange={(e) => setNewFloorName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddFloor()}
-            placeholder="e.g. Ground Floor, Terrace"
+            placeholder={t('tables.floorPlaceholder')}
             className="w-full border border-border-warm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand"
             autoFocus
           />
           <Button onClick={handleAddFloor} disabled={!newFloorName.trim()} className="w-full">
-            Add Floor
+            {t('tables.addFloor')}
           </Button>
         </div>
       </Modal>

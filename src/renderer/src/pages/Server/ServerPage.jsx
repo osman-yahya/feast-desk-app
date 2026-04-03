@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Wifi, WifiOff, Users, ChefHat, QrCode, RefreshCw, Globe, Shield, Loader2, Lock, Zap } from 'lucide-react'
 import { Card, CardHeader } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
@@ -18,6 +19,7 @@ export function ServerPage() {
   const { settings, set: setSetting } = useSettingsStore()
   const level = useRestaurantStore((s) => s.level)
   const toast = useToast()
+  const { t } = useTranslation()
   const [selectedMode, setSelectedMode] = useState('local')
   const canFreeTunnel = level >= FREE_TUNNEL_MIN_LEVEL
   const canFeastTunnel = level >= FEAST_TUNNEL_MIN_LEVEL
@@ -34,8 +36,8 @@ export function ServerPage() {
     try {
       const result = await start(selectedMode)
       if (result.success) {
-        const modeLabel = result.mode === 'feast-tunnel' ? ' with feast tunnel' : result.mode === 'tunnel' ? ' with tunnel' : ''
-        toast(`Server started${modeLabel} on port ${result.port}`, 'success')
+        const modeLabel = result.mode === 'feast-tunnel' ? t('server.withFeastTunnel') : result.mode === 'tunnel' ? t('server.withTunnel') : ''
+        toast(t('server.serverStarted', { mode: modeLabel, port: result.port }), 'success')
       } else {
         toast(result.error || 'Failed to start server', 'error')
       }
@@ -46,7 +48,7 @@ export function ServerPage() {
 
   async function handleStop() {
     await stop()
-    toast('Server stopped', 'info')
+    toast(t('server.serverStopped'), 'info')
   }
 
   const baseUrl = tunnelUrl || (ip ? `http://${ip}:${port}` : null)
@@ -56,9 +58,9 @@ export function ServerPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
-        <h1 className="font-bold text-xl text-ink">Local Server</h1>
+        <h1 className="font-bold text-xl text-ink">{t('server.localServer')}</h1>
         <PillBadge
-          label={isRunning ? 'Running' : 'Stopped'}
+          label={isRunning ? t('server.running') : t('server.stopped')}
           color={isRunning ? 'green' : 'gray'}
           dot
         />
@@ -67,22 +69,22 @@ export function ServerPage() {
       {/* Status card */}
       <Card dark={isRunning}>
         <CardHeader
-          title={isRunning ? 'Server Active' : 'Server Offline'}
+          title={isRunning ? t('server.serverActive') : t('server.serverOffline')}
           subtitle={
             isRunning
               ? connectionMode === 'tunnel'
-                ? `Tunnel active — ${tunnelUrl}`
-                : `Listening on ${ip}:${port}`
-              : 'Start the server to allow waiters and kitchen staff to connect'
+                ? t('server.tunnelActive', { url: tunnelUrl })
+                : t('server.listeningOn', { ip, port })
+              : t('server.startHint')
           }
         />
         {isRunning && (
           <div className="mb-3">
             <PillBadge
               label={
-                connectionMode === 'feast-tunnel' ? 'feast. Tunnel' :
-                connectionMode === 'tunnel' ? 'Free Tunnel' :
-                'Local Network'
+                connectionMode === 'feast-tunnel' ? t('server.feastTunnel') :
+                connectionMode === 'tunnel' ? t('server.freeTunnel') :
+                t('server.localNetwork')
               }
               color={
                 connectionMode === 'feast-tunnel' ? 'green' :
@@ -99,7 +101,7 @@ export function ServerPage() {
             </div>
             <div>
               <p className={`font-bold text-lg ${isRunning ? 'text-white' : 'text-ink'}`}>{waiterClients}</p>
-              <p className={`text-xs ${isRunning ? 'text-gray-400' : 'text-ink-muted'}`}>Waiters</p>
+              <p className={`text-xs ${isRunning ? 'text-gray-400' : 'text-ink-muted'}`}>{t('server.waiters')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -108,23 +110,23 @@ export function ServerPage() {
             </div>
             <div>
               <p className={`font-bold text-lg ${isRunning ? 'text-white' : 'text-ink'}`}>{kitchenClients}</p>
-              <p className={`text-xs ${isRunning ? 'text-gray-400' : 'text-ink-muted'}`}>Kitchen</p>
+              <p className={`text-xs ${isRunning ? 'text-gray-400' : 'text-ink-muted'}`}>{t('server.kitchen')}</p>
             </div>
           </div>
         </div>
         {!isRunning ? (
           <Button icon={starting ? Loader2 : Wifi} onClick={handleStart} loading={starting}>
-            {starting ? 'Starting...' : 'Start Server'}
+            {starting ? t('server.starting') : t('server.startServer')}
           </Button>
         ) : (
-          <Button icon={WifiOff} variant="secondary" onClick={handleStop}>Stop Server</Button>
+          <Button icon={WifiOff} variant="secondary" onClick={handleStop}>{t('server.stopServer')}</Button>
         )}
       </Card>
 
       {/* Connection mode selection — only when server is stopped */}
       {!isRunning && (
         <div>
-          <h2 className="font-semibold text-sm text-ink mb-3">Connection Type</h2>
+          <h2 className="font-semibold text-sm text-ink mb-3">{t('server.connectionType')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Local Network */}
             <button
@@ -142,17 +144,17 @@ export function ServerPage() {
                   <Shield size={18} className={selectedMode === 'local' ? 'text-brand' : 'text-ink-muted'} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-ink">Local Network</p>
-                  <p className="text-xs text-ink-muted">Same Wi-Fi</p>
+                  <p className="font-semibold text-sm text-ink">{t('server.localNetwork')}</p>
+                  <p className="text-xs text-ink-muted">{t('server.sameWifi')}</p>
                 </div>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Devices connect directly over your Wi-Fi. Fastest and most private — no data leaves your network.
+                {t('server.localDesc')}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Fastest</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Private</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">Same Wi-Fi only</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.fastest')}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.private')}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{t('server.sameWifiOnly')}</span>
               </div>
             </button>
 
@@ -179,17 +181,17 @@ export function ServerPage() {
                   <Globe size={18} className={selectedMode === 'tunnel' && canFreeTunnel ? 'text-brand' : 'text-ink-muted'} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-ink">Free Tunnel</p>
-                  <p className="text-xs text-ink-muted">Internet Tunnel</p>
+                  <p className="font-semibold text-sm text-ink">{t('server.freeTunnel')}</p>
+                  <p className="text-xs text-ink-muted">{t('server.internetTunnel')}</p>
                 </div>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Creates a public URL via third-party tunnel. Works across different networks. URL changes on each restart.
+                {t('server.freeTunnelDesc')}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Any network</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">Temporary URL</span>
-                {!canFreeTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Level {FREE_TUNNEL_MIN_LEVEL}+</span>}
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.anyNetwork')}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{t('server.temporaryUrl')}</span>
+                {!canFreeTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">{t('common.level')} {FREE_TUNNEL_MIN_LEVEL}+</span>}
               </div>
             </button>
 
@@ -216,17 +218,17 @@ export function ServerPage() {
                   <Zap size={18} className={selectedMode === 'feast-tunnel' && canFeastTunnel ? 'text-brand' : 'text-ink-muted'} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-ink">feast. Tunnel</p>
-                  <p className="text-xs text-ink-muted">Premium Tunnel</p>
+                  <p className="font-semibold text-sm text-ink">{t('server.feastTunnel')}</p>
+                  <p className="text-xs text-ink-muted">{t('server.premiumTunnel')}</p>
                 </div>
               </div>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Dedicated tunnel through feast. servers. Stable permanent URL, fastest remote connection, auto-reconnect.
+                {t('server.feastTunnelDesc')}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Permanent URL</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">Auto-reconnect</span>
-                {!canFeastTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Level {FEAST_TUNNEL_MIN_LEVEL}+</span>}
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.permanentUrl')}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.autoReconnect')}</span>
+                {!canFeastTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">{t('common.level')} {FEAST_TUNNEL_MIN_LEVEL}+</span>}
               </div>
             </button>
           </div>
@@ -235,11 +237,11 @@ export function ServerPage() {
           <div className="mt-3 p-3 rounded-xl bg-gray-50 border border-border-warm">
             <p className="text-xs text-ink-muted leading-relaxed">
               {selectedMode === 'local' ? (
-                <><strong className="text-ink">Recommended when:</strong> All staff devices (phones, tablets) are connected to the same Wi-Fi network as this computer. Best performance and full privacy.</>
+                <><strong className="text-ink">{t('server.recommendedWhen')}</strong> {t('server.localRecommendation')}</>
               ) : selectedMode === 'tunnel' ? (
-                <><strong className="text-ink">Recommended when:</strong> Your restaurant has multiple Wi-Fi networks, weak signal areas, or staff use mobile data. URL changes each time the server restarts.</>
+                <><strong className="text-ink">{t('server.recommendedWhen')}</strong> {t('server.tunnelRecommendation')}</>
               ) : (
-                <><strong className="text-ink">Recommended when:</strong> You need a reliable, always-the-same URL for your staff. Works across any network with automatic reconnection if connection drops.</>
+                <><strong className="text-ink">{t('server.recommendedWhen')}</strong> {t('server.feastRecommendation')}</>
               )}
             </p>
           </div>
@@ -248,7 +250,7 @@ export function ServerPage() {
 
       {/* Port configuration */}
       <Card>
-        <CardHeader title="Server Port" subtitle="Change the port the server listens on (requires restart)" />
+        <CardHeader title={t('server.serverPort')} subtitle={t('server.portSubtitle')} />
         <div className="flex items-center gap-3">
           <input
             type="number"
@@ -258,7 +260,7 @@ export function ServerPage() {
             disabled={isRunning}
             className="w-32 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand disabled:opacity-50 text-center"
           />
-          {isRunning && <p className="text-xs text-amber-600">Stop the server to change the port</p>}
+          {isRunning && <p className="text-xs text-amber-600">{t('server.stopToChange')}</p>}
         </div>
       </Card>
 
@@ -266,22 +268,22 @@ export function ServerPage() {
       {isRunning && qrDataURL && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
-            <CardHeader title="Waiter QR Code" subtitle="Scan to open the waiter ordering interface" />
+            <CardHeader title={t('server.waiterQr')} subtitle={t('server.scanToOpen')} />
             <img src={qrDataURL} alt="Waiter QR" className="w-40 h-40 mx-auto rounded-xl" />
             <p className="text-center text-xs text-ink-muted mt-2 font-mono break-all">{waiterUrl}</p>
           </Card>
           <Card>
-            <CardHeader title="How to Connect" />
+            <CardHeader title={t('server.howToConnect')} />
             <ol className="space-y-3">
               {[
-                { icon: '1', text: 'Scan the QR code with a phone or tablet' },
-                { icon: '2', text: 'Select "Waiter" role to take orders from tables' },
-                { icon: '3', text: 'Visit the URL and select "Kitchen" to display incoming orders' },
+                { icon: '1', text: t('server.step1') },
+                { icon: '2', text: t('server.step2') },
+                { icon: '3', text: t('server.step3') },
                 ...(connectionMode === 'local'
-                  ? [{ icon: '!', text: 'All devices must be on the same Wi-Fi network' }]
+                  ? [{ icon: '!', text: t('server.localWarning') }]
                   : connectionMode === 'feast-tunnel'
-                  ? [{ icon: '!', text: 'Devices can be on any network — your feast. tunnel URL is permanent' }]
-                  : [{ icon: '!', text: 'Devices can be on any network — the tunnel URL works everywhere' }]
+                  ? [{ icon: '!', text: t('server.feastTunnelInfo') }]
+                  : [{ icon: '!', text: t('server.freeTunnelInfo') }]
                 )
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2.5">
@@ -300,8 +302,8 @@ export function ServerPage() {
       {isRunning && (connectionMode === 'tunnel' || connectionMode === 'feast-tunnel') && tunnelUrl && (
         <Card>
           <CardHeader
-            title={connectionMode === 'feast-tunnel' ? 'feast. Tunnel URL' : 'Tunnel URL'}
-            subtitle="Share this URL with staff on any network"
+            title={connectionMode === 'feast-tunnel' ? t('server.feastTunnelUrlTitle') : t('server.tunnelUrlTitle')}
+            subtitle={t('server.shareUrl')}
           />
           <div className="flex items-center gap-2">
             <code className="flex-1 text-sm bg-gray-50 px-3 py-2 rounded-xl border border-border-warm break-all font-mono">
@@ -310,15 +312,15 @@ export function ServerPage() {
           </div>
           <p className="text-xs text-ink-muted mt-2">
             {connectionMode === 'feast-tunnel'
-              ? 'This URL is permanent and stays the same across restarts.'
-              : 'This URL is temporary and changes each time the server restarts.'
+              ? t('server.permanentUrlInfo')
+              : t('server.temporaryUrlInfo')
             }
           </p>
         </Card>
       )}
 
       {/* Refresh button */}
-      <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refreshStatus}>Refresh Status</Button>
+      <Button variant="ghost" size="sm" icon={RefreshCw} onClick={refreshStatus}>{t('server.refreshStatus')}</Button>
     </div>
   )
 }

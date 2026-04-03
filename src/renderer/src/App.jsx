@@ -1,5 +1,7 @@
+import './i18n/index.js'
 import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AppShell } from './components/layout/AppShell.jsx'
 import { ToastProvider } from './components/ui/Toast.jsx'
 import { useRestaurantStore } from './store/useRestaurantStore.js'
@@ -14,13 +16,14 @@ import { ServerPage } from './pages/Server/ServerPage.jsx'
 import { SettingsPage } from './pages/Settings/SettingsPage.jsx'
 
 function LoadingScreen() {
+  const { t } = useTranslation()
   return (
     <div className="h-screen flex items-center justify-center bg-surface-bg">
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center animate-pulse">
           <span className="text-white font-black text-lg">F</span>
         </div>
-        <p className="text-sm text-ink-muted font-medium">Loading feast. Desk...</p>
+        <p className="text-sm text-ink-muted font-medium">{t('common.loading')}</p>
       </div>
     </div>
   )

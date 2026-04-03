@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Users } from 'lucide-react'
 
 const CELL_SIZE = 56 // px per grid unit
@@ -12,6 +13,7 @@ const statusColors = {
 }
 
 export function FloorGrid({ tables, elements, onTableClick, selectedTableId }) {
+  const { t } = useTranslation()
   return (
     <div className="overflow-auto bg-gray-50 rounded-2xl border border-border-warm p-4">
       <div
@@ -85,7 +87,7 @@ export function FloorGrid({ tables, elements, onTableClick, selectedTableId }) {
             >
               <span className="font-bold text-sm leading-tight">{tbl.name}</span>
               {tbl.status === 'occupied' && <Users size={10} className="mt-0.5 opacity-60" />}
-              {tbl.status === 'checkout_pending' && <span className="text-[9px] font-medium opacity-70">Bill Ready</span>}
+              {tbl.status === 'checkout_pending' && <span className="text-[9px] font-medium opacity-70">{t('tables.billReady')}</span>}
             </button>
           )
         })}

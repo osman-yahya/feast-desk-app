@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { Lock, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
 
 export function PasswordGate({ children, feature = 'this area' }) {
+  const { t } = useTranslation()
   const settings = useSettingsStore((s) => s.settings)
   const sessionUnlocked = useSettingsStore((s) => s.sessionUnlocked)
   const unlock = useSettingsStore((s) => s.unlock)
@@ -26,7 +28,7 @@ export function PasswordGate({ children, feature = 'this area' }) {
       setPwd('')
       setError('')
     } else {
-      setError('Incorrect password')
+      setError(t('passwordGate.incorrect'))
       setPwd('')
     }
   }
@@ -37,15 +39,15 @@ export function PasswordGate({ children, feature = 'this area' }) {
         <div className="w-12 h-12 bg-brand-pale rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Lock size={20} className="text-brand" />
         </div>
-        <h2 className="font-bold text-lg text-ink mb-1">Password Required</h2>
-        <p className="text-sm text-ink-muted mb-5">Enter your password to access {feature}.</p>
+        <h2 className="font-bold text-lg text-ink mb-1">{t('passwordGate.passwordRequired')}</h2>
+        <p className="text-sm text-ink-muted mb-5">{t('passwordGate.enterPassword', { feature })}</p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative">
             <input
               type={showPwd ? 'text' : 'password'}
               value={pwd}
               onChange={(e) => { setPwd(e.target.value); setError('') }}
-              placeholder="Enter password"
+              placeholder={t('passwordGate.placeholder')}
               autoFocus
               className="w-full border border-border-warm rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:border-brand text-center tracking-widest"
             />
@@ -65,7 +67,7 @@ export function PasswordGate({ children, feature = 'this area' }) {
             disabled={!pwd}
             className="w-full bg-brand text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Unlock
+            {t('passwordGate.unlock')}
           </button>
         </form>
       </div>

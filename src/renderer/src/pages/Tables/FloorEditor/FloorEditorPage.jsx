@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Check, X, Plus, Trash2, Square, Minus, AlignLeft, Pencil, Eraser } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Modal } from '../../../components/ui/Modal.jsx'
 import { useTableStore } from '../../../store/useTableStore.js'
@@ -28,6 +29,7 @@ function getLabelFontSize(text) {
 export function FloorEditorPage({ onClose }) {
   const { floors, activeFloorId, tables, floorElements, upsertTable, deleteTable, saveFloorElements } = useTableStore()
   const toast = useToast()
+  const { t } = useTranslation()
 
   const [gridCols, setGridCols] = useState(DEFAULT_COLS)
   const [gridRows, setGridRows] = useState(DEFAULT_ROWS)
@@ -340,7 +342,7 @@ export function FloorEditorPage({ onClose }) {
     })
     setShowTableModal(false)
     setIsDirty(true)
-    toast(`Table "${tableName}" added`, 'success')
+    toast(t('floorEditor.tableAdded', { name: tableName }), 'success')
   }
 
   async function handleDeleteSelected() {
@@ -348,7 +350,7 @@ export function FloorEditorPage({ onClose }) {
     if (selected.type === 'table') {
       await deleteTable(parseInt(selected.id))
       setLocalTables(prev => prev.filter(t => String(t.id) !== selected.id))
-      toast('Table removed', 'info')
+      toast(t('floorEditor.tableRemoved'), 'info')
     } else {
       setElements(prev => prev.filter(el => String(el.id) !== selected.id))
     }
@@ -360,7 +362,7 @@ export function FloorEditorPage({ onClose }) {
     const cleanElements = elements.map(({ id, ...el }) => el)
     await saveFloorElements(activeFloorId, cleanElements)
     setIsDirty(false)
-    toast('Layout saved', 'success')
+    toast(t('floorEditor.layoutSaved'), 'success')
     onClose()
   }
 
@@ -399,38 +401,38 @@ export function FloorEditorPage({ onClose }) {
       {/* ── Toolbar ── */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="font-bold text-xl text-ink">Edit Layout</h1>
+          <h1 className="font-bold text-xl text-ink">{t('floorEditor.editLayout')}</h1>
           {floorName && (
             <span className="px-2.5 py-1 bg-brand-pale text-brand rounded-pill text-xs font-semibold">{floorName}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" icon={X} onClick={onClose}>Cancel</Button>
-          <Button size="sm" icon={Check} onClick={handleSave} disabled={!isDirty}>Save</Button>
+          <Button variant="secondary" size="sm" icon={X} onClick={onClose}>{t('common.cancel')}</Button>
+          <Button size="sm" icon={Check} onClick={handleSave} disabled={!isDirty}>{t('common.save')}</Button>
         </div>
       </div>
 
       {/* ── Tools row ── */}
       <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
         <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1.5">
-          {TOOLS.map(t => (
-            <button key={t.id} onClick={() => setTool(t.id)}
+          {TOOLS.map(toolItem => (
+            <button key={toolItem.id} onClick={() => setTool(toolItem.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all
-                ${tool === t.id ? 'bg-white shadow text-ink' : 'text-ink-muted hover:text-ink'}`}>
-              <t.icon size={15} />{t.label}
+                ${tool === toolItem.id ? 'bg-white shadow text-ink' : 'text-ink-muted hover:text-ink'}`}>
+              <toolItem.icon size={15} />{t('floorEditor.' + toolItem.id)}
             </button>
           ))}
         </div>
 
-        {tool === 'wall'   && <span className="text-xs text-ink-muted italic">Drag to draw — direction is auto-detected from your drag</span>}
-        {tool === 'brush'  && <span className="text-xs text-ink-muted italic">Paint wall cells by dragging over the grid</span>}
-        {tool === 'eraser' && <span className="text-xs text-ink-muted italic">Drag over walls to erase them</span>}
+        {tool === 'wall'   && <span className="text-xs text-ink-muted italic">{t('floorEditor.wallHint')}</span>}
+        {tool === 'brush'  && <span className="text-xs text-ink-muted italic">{t('floorEditor.brushHint')}</span>}
+        {tool === 'eraser' && <span className="text-xs text-ink-muted italic">{t('floorEditor.eraserHint')}</span>}
         {(tool === 'table' || tool === 'label') && (
-          <span className="text-xs text-ink-muted italic">Click to place · drag to move · drag corner handle to resize tables</span>
+          <span className="text-xs text-ink-muted italic">{t('floorEditor.placeHint')}</span>
         )}
 
         {selected && (
-          <Button variant="danger" size="sm" icon={Trash2} onClick={handleDeleteSelected}>Remove Selected</Button>
+          <Button variant="danger" size="sm" icon={Trash2} onClick={handleDeleteSelected}>{t('floorEditor.removeSelected')}</Button>
         )}
       </div>
 
@@ -561,18 +563,18 @@ export function FloorEditorPage({ onClose }) {
       </div>
 
       {/* ── Add table modal ── */}
-      <Modal open={showTableModal} onClose={() => setShowTableModal(false)} title="Add Table" size="sm">
+      <Modal open={showTableModal} onClose={() => setShowTableModal(false)} title={t('floorEditor.addTable')} size="sm">
         <div className="space-y-5">
           <div>
-            <label className="text-sm font-semibold text-ink-muted block mb-2">Table Name</label>
+            <label className="text-sm font-semibold text-ink-muted block mb-2">{t('floorEditor.tableName')}</label>
             <input value={tableName} onChange={e => setTableName(e.target.value)}
-              placeholder="e.g. T1, Bar, 01" autoFocus
+              placeholder={t('floorEditor.tableNamePlaceholder')} autoFocus
               className="w-full border border-border-warm rounded-xl px-4 py-3 text-base focus:outline-none focus:border-brand"
               onKeyDown={e => e.key === 'Enter' && handlePlaceTable()}
             />
           </div>
           <div className="flex gap-4">
-            {[['Width (cols)', tableW, setTableW], ['Height (rows)', tableH, setTableH]].map(([lbl, val, set]) => (
+            {[[t('floorEditor.widthCols'), tableW, setTableW], [t('floorEditor.heightRows'), tableH, setTableH]].map(([lbl, val, set]) => (
               <div key={lbl} className="flex-1">
                 <label className="text-sm font-semibold text-ink-muted block mb-2">{lbl}</label>
                 <div className="flex items-center gap-3">
@@ -591,23 +593,23 @@ export function FloorEditorPage({ onClose }) {
               {tableName || '?'}
             </div>
           </div>
-          <Button onClick={handlePlaceTable} disabled={!tableName.trim()} className="w-full" size="lg">Place Table</Button>
+          <Button onClick={handlePlaceTable} disabled={!tableName.trim()} className="w-full" size="lg">{t('floorEditor.placeTable')}</Button>
         </div>
       </Modal>
 
       {/* ── Add label modal ── */}
-      <Modal open={showLabelModal} onClose={() => setShowLabelModal(false)} title="Add Label" size="sm">
+      <Modal open={showLabelModal} onClose={() => setShowLabelModal(false)} title={t('floorEditor.addLabel')} size="sm">
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-semibold text-ink-muted block mb-2">Label Text</label>
+            <label className="text-sm font-semibold text-ink-muted block mb-2">{t('floorEditor.labelText')}</label>
             <input value={labelText} onChange={e => setLabelText(e.target.value)}
-              placeholder="e.g. Bar, Exit, Window" autoFocus
+              placeholder={t('floorEditor.labelPlaceholder')} autoFocus
               className="w-full border border-border-warm rounded-xl px-4 py-3 text-base focus:outline-none focus:border-brand"
               onKeyDown={e => e.key === 'Enter' && handlePlaceLabelConfirm()}
             />
-            <p className="text-xs text-ink-muted mt-1.5">Labels use a 1×1 cell. Shorter text works best.</p>
+            <p className="text-xs text-ink-muted mt-1.5">{t('floorEditor.labelHint')}</p>
           </div>
-          <Button onClick={handlePlaceLabelConfirm} disabled={!labelText.trim()} className="w-full" size="lg">Place Label</Button>
+          <Button onClick={handlePlaceLabelConfirm} disabled={!labelText.trim()} className="w-full" size="lg">{t('floorEditor.placeLabel')}</Button>
         </div>
       </Modal>
     </div>

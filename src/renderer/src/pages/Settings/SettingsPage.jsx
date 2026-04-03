@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   RefreshCw, Sunset, Tag, Download, Upload, Settings, Lock, Eye, EyeOff, Trash2, Plus, ExternalLink, Unlock,
-  ChefHat, Star
+  ChefHat, Star, Languages
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n/index.js'
 import { Button } from '../../components/ui/Button.jsx'
 import { Card, CardHeader } from '../../components/ui/Card.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
@@ -12,6 +14,7 @@ import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useToast } from '../../components/ui/Toast.jsx'
 
 export function SettingsPage() {
+  const { t } = useTranslation()
   const toast = useToast()
   const { settings, discounts, loadAll, set: setSetting, saveDiscount, deleteDiscount, lock, sessionUnlocked } = useSettingsStore()
   const { restaurant, refresh, disconnect } = useRestaurantStore()
@@ -41,7 +44,7 @@ export function SettingsPage() {
     if (result?.success === false) {
       toast(result.error || 'Refresh failed', 'error')
     } else {
-      toast('Menu data refreshed', 'success')
+      toast(t('settings.menuRefreshed'), 'success')
       setRefreshCode('')
     }
   }
@@ -56,7 +59,7 @@ export function SettingsPage() {
   async function handleCloseOrder(orderId) {
     await window.feastAPI.settings.closeOrder(orderId)
     setUnclosedOrders((prev) => prev.filter((o) => o.id !== orderId))
-    toast('Order closed', 'info')
+    toast(t('settings.orderClosed'), 'info')
   }
 
   async function handleExport() {
@@ -69,7 +72,7 @@ export function SettingsPage() {
     a.download = `feast-config-${new Date().toISOString().slice(0, 10)}.feast`
     a.click()
     URL.revokeObjectURL(url)
-    toast('Config exported', 'success')
+    toast(t('settings.configExported'), 'success')
   }
 
   function handleImportFile(e) {
@@ -82,12 +85,12 @@ export function SettingsPage() {
         const result = await window.feastAPI.settings.importConfig(data)
         if (result.success) {
           await loadAll()
-          toast('Config imported successfully', 'success')
+          toast(t('settings.configImported'), 'success')
         } else {
           toast(result.error || 'Import failed', 'error')
         }
       } catch {
-        toast('Invalid .feast file', 'error')
+        toast(t('settings.invalidFile'), 'error')
       }
     }
     reader.readAsText(file)
@@ -97,26 +100,27 @@ export function SettingsPage() {
   async function handleSaveDiscount() {
     const pct = parseFloat(discountForm.pct)
     if (!discountForm.label || isNaN(pct) || pct < 0 || pct > 100) {
-      toast('Invalid discount data', 'error')
+      toast(t('settings.invalidDiscount'), 'error')
       return
     }
     await saveDiscount({ label: discountForm.label, pct })
     setShowDiscountModal(false)
     setDiscountForm({ label: '', pct: '' })
-    toast('Discount saved', 'success')
+    toast(t('settings.discountSaved'), 'success')
   }
 
   const sections = [
-    { id: 'cache', label: 'Cache & Menu', icon: RefreshCw },
-    { id: 'endofday', label: 'End of Day', icon: Sunset },
-    { id: 'discounts', label: 'Discounts', icon: Tag },
-    { id: 'config', label: 'Export / Import', icon: Download },
-    { id: 'global', label: 'Global Settings', icon: Settings },
-    { id: 'kitchen', label: 'Kitchen', icon: ChefHat },
-    { id: 'security', label: 'Security', icon: Lock }
+    { id: 'cache', label: t('settings.cacheMenu'), icon: RefreshCw },
+    { id: 'endofday', label: t('settings.endOfDay'), icon: Sunset },
+    { id: 'discounts', label: t('settings.discounts'), icon: Tag },
+    { id: 'config', label: t('settings.exportImport'), icon: Download },
+    { id: 'global', label: t('settings.globalSettings'), icon: Settings },
+    { id: 'kitchen', label: t('settings.kitchenSettings'), icon: ChefHat },
+    { id: 'security', label: t('settings.security'), icon: Lock },
+    { id: 'language', label: t('settings.language'), icon: Languages }
   ]
 
-  const LEVEL_LABELS = { 1: 'Starter', 2: 'Essential', 3: 'Professional', 4: 'Enterprise' }
+  const LEVEL_LABELS = { 1: t('settings.starter'), 2: t('settings.essential'), 3: t('settings.professional'), 4: t('settings.enterprise') }
   const level = restaurant?.level ?? 1
 
   return (
@@ -139,7 +143,7 @@ export function SettingsPage() {
         {/* Cache section */}
         {activeSection === 'cache' && (
           <div className="space-y-4 max-w-lg">
-            <h2 className="font-bold text-lg text-ink">Cache & Menu</h2>
+            <h2 className="font-bold text-lg text-ink">{t('settings.cacheMenu')}</h2>
             {restaurant && (
               <>
                 {/* Level badge card */}
@@ -153,16 +157,16 @@ export function SettingsPage() {
                       <p className="text-white font-bold text-base">{LEVEL_LABELS[level] ?? `Level ${level}`}</p>
                       <p className="text-gray-400 text-sm truncate">{restaurant.restaurant_name}</p>
                       <p className="text-gray-500 text-xs mt-0.5">
-                        Level {level} — {level >= 4 ? 'All features unlocked' : `Upgrade for more features`}
+                        Level {level} — {level >= 4 ? t('settings.allFeaturesUnlocked') : t('settings.upgradeForMore')}
                       </p>
                     </div>
                   </div>
                 </Card>
                 <Card>
-                  <CardHeader title="Connection Details" />
+                  <CardHeader title={t('settings.connectionDetails')} />
                   <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between"><span className="text-ink-muted">Restaurant</span><span className="font-medium">{restaurant.restaurant_name}</span></div>
-                    <div className="flex justify-between"><span className="text-ink-muted">Last cached</span>
+                    <div className="flex justify-between"><span className="text-ink-muted">{t('settings.restaurant')}</span><span className="font-medium">{restaurant.restaurant_name}</span></div>
+                    <div className="flex justify-between"><span className="text-ink-muted">{t('settings.lastCached')}</span>
                       <span className="font-medium">{restaurant.cached_at ? new Date(restaurant.cached_at).toLocaleString() : 'Unknown'}</span>
                     </div>
                   </div>
@@ -170,32 +174,32 @@ export function SettingsPage() {
               </>
             )}
             <Card>
-              <CardHeader title="Refresh Menu Data" subtitle="Enter your connection code to fetch latest menu" />
+              <CardHeader title={t('settings.refreshMenuData')} subtitle={t('settings.refreshSubtitle')} />
               <div className="space-y-3">
                 <input value={refreshCode} onChange={(e) => setRefreshCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleRefresh()}
-                  placeholder="e.g. 12345-ABC123"
+                  placeholder={t('settings.refreshPlaceholder')}
                   className="w-full border border-border-warm rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand" />
                 <Button onClick={handleRefresh} loading={refreshing} disabled={!refreshCode.trim()} icon={RefreshCw} size="sm">
-                  Refresh Now
+                  {t('settings.refreshNow')}
                 </Button>
               </div>
             </Card>
             <Card>
-              <CardHeader title="Menu Links" />
+              <CardHeader title={t('settings.menuLinks')} />
               <div className="space-y-2">
                 <button onClick={() => window.open('https://feast.tr/dash/menus', '_blank')}
                   className="flex items-center gap-2 text-sm text-brand hover:underline">
-                  <ExternalLink size={13} /> Edit Menu on feast.tr
+                  <ExternalLink size={13} /> {t('settings.editMenuLink')}
                 </button>
                 <button onClick={() => window.open('https://feast.tr/dash/premium', '_blank')}
                   className="flex items-center gap-2 text-sm text-brand hover:underline">
-                  <ExternalLink size={13} /> Manage Subscription on feast.tr
+                  <ExternalLink size={13} /> {t('settings.manageSubLink')}
                 </button>
               </div>
             </Card>
             <Card>
-              <CardHeader title="Disconnect" subtitle="Remove this restaurant from this device" />
-              <ConfirmLock onConfirm={() => { disconnect(); toast('Disconnected', 'info') }} label="Hold to Disconnect" />
+              <CardHeader title={t('settings.disconnect')} subtitle={t('settings.disconnectSub')} />
+              <ConfirmLock onConfirm={() => { disconnect(); toast(t('settings.disconnected'), 'info') }} label={t('settings.holdToDisconnect')} />
             </Card>
           </div>
         )}
@@ -203,22 +207,22 @@ export function SettingsPage() {
         {/* End of Day section */}
         {activeSection === 'endofday' && (
           <div className="space-y-4 max-w-lg">
-            <h2 className="font-bold text-lg text-ink">End of Day</h2>
+            <h2 className="font-bold text-lg text-ink">{t('settings.endOfDay')}</h2>
             <Card>
-              <CardHeader title="Unclosed Orders" subtitle="All orders that have not been paid or deleted" action={
-                <Button size="sm" variant="secondary" onClick={loadUnclosed} loading={loadingUnclosed}>Load</Button>
+              <CardHeader title={t('settings.unclosedOrders')} subtitle={t('settings.unclosedSub')} action={
+                <Button size="sm" variant="secondary" onClick={loadUnclosed} loading={loadingUnclosed}>{t('settings.load')}</Button>
               } />
               {unclosedOrders.length === 0 ? (
-                <p className="text-sm text-ink-muted">Click Load to check for unclosed orders.</p>
+                <p className="text-sm text-ink-muted">{t('settings.clickToLoad')}</p>
               ) : (
                 <div className="space-y-3">
                   {unclosedOrders.map((order) => (
                     <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                       <div>
-                        <p className="font-semibold text-sm text-ink">{order.table_name || 'Direct Order'} #{order.id}</p>
+                        <p className="font-semibold text-sm text-ink">{order.table_name || t('settings.directOrderLabel')} #{order.id}</p>
                         <p className="text-xs text-ink-muted">{new Date(order.opened_at).toLocaleString()}</p>
                       </div>
-                      <ConfirmLock onConfirm={() => handleCloseOrder(order.id)} label="Hold to Close" className="ml-3" />
+                      <ConfirmLock onConfirm={() => handleCloseOrder(order.id)} label={t('settings.holdToClose')} className="ml-3" />
                     </div>
                   ))}
                 </div>
@@ -231,12 +235,12 @@ export function SettingsPage() {
         {activeSection === 'discounts' && (
           <div className="space-y-4 max-w-lg">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg text-ink">Predefined Discounts</h2>
-              <Button size="sm" icon={Plus} onClick={() => { setDiscountForm({ label: '', pct: '' }); setShowDiscountModal(true) }}>Add Discount</Button>
+              <h2 className="font-bold text-lg text-ink">{t('settings.predefinedDiscounts')}</h2>
+              <Button size="sm" icon={Plus} onClick={() => { setDiscountForm({ label: '', pct: '' }); setShowDiscountModal(true) }}>{t('settings.addDiscount')}</Button>
             </div>
             {discounts.length === 0 ? (
               <Card>
-                <p className="text-sm text-ink-muted">No discounts defined. Add some for quick checkout.</p>
+                <p className="text-sm text-ink-muted">{t('settings.noDiscounts')}</p>
               </Card>
             ) : (
               <div className="space-y-2">
@@ -245,7 +249,7 @@ export function SettingsPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-sm text-ink">{d.label}</p>
-                        <p className="text-xs text-ink-muted">{d.pct}% off</p>
+                        <p className="text-xs text-ink-muted">{d.pct}{t('settings.off')}</p>
                       </div>
                       <button onClick={() => deleteDiscount(d.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                         <Trash2 size={14} />
@@ -261,15 +265,15 @@ export function SettingsPage() {
         {/* Export/Import section */}
         {activeSection === 'config' && (
           <div className="space-y-4 max-w-lg">
-            <h2 className="font-bold text-lg text-ink">Export / Import</h2>
+            <h2 className="font-bold text-lg text-ink">{t('settings.exportImport')}</h2>
             <Card>
-              <CardHeader title="Export Configuration" subtitle="Save floors, tables, discounts, and settings as a .feast file" />
-              <Button icon={Download} onClick={handleExport} variant="secondary">Export .feast File</Button>
+              <CardHeader title={t('settings.exportConfig')} subtitle={t('settings.exportSub')} />
+              <Button icon={Download} onClick={handleExport} variant="secondary">{t('settings.exportBtn')}</Button>
             </Card>
             <Card>
-              <CardHeader title="Import Configuration" subtitle="Restore from a previously exported .feast file (replaces floors/tables/discounts)" />
+              <CardHeader title={t('settings.importConfig')} subtitle={t('settings.importSub')} />
               <input ref={fileInputRef} type="file" accept=".feast,.json" className="hidden" onChange={handleImportFile} />
-              <Button icon={Upload} onClick={() => fileInputRef.current?.click()} variant="secondary">Import .feast File</Button>
+              <Button icon={Upload} onClick={() => fileInputRef.current?.click()} variant="secondary">{t('settings.importBtn')}</Button>
             </Card>
           </div>
         )}
@@ -277,9 +281,9 @@ export function SettingsPage() {
         {/* Global settings */}
         {activeSection === 'global' && (
           <div className="space-y-4 max-w-lg">
-            <h2 className="font-bold text-lg text-ink">Global Settings</h2>
+            <h2 className="font-bold text-lg text-ink">{t('settings.globalSettings')}</h2>
             <Card>
-              <CardHeader title="Data Retention" subtitle="How many days of order history to keep" />
+              <CardHeader title={t('settings.dataRetention')} subtitle={t('settings.dataRetentionSub')} />
               <div className="flex items-center gap-3">
                 <input
                   type="number"
@@ -288,11 +292,11 @@ export function SettingsPage() {
                   onChange={(e) => setSetting('data_retention_days', e.target.value)}
                   className="w-24 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
                 />
-                <span className="text-sm text-ink-muted">days</span>
+                <span className="text-sm text-ink-muted">{t('common.days')}</span>
               </div>
             </Card>
             <Card>
-              <CardHeader title="Currency Symbol" />
+              <CardHeader title={t('settings.currencySymbol')} />
               <input
                 value={settings.currency_symbol || '₺'}
                 onChange={(e) => setSetting('currency_symbol', e.target.value)}
@@ -301,10 +305,10 @@ export function SettingsPage() {
               />
             </Card>
             <Card>
-              <CardHeader title="Floor Editor Grid Size" subtitle="Number of columns and rows in the floor layout editor" />
+              <CardHeader title={t('settings.gridSize')} subtitle={t('settings.gridSizeSub')} />
               <div className="flex items-center gap-6">
                 <div>
-                  <label className="text-xs font-semibold text-ink-muted block mb-1.5">Columns</label>
+                  <label className="text-xs font-semibold text-ink-muted block mb-1.5">{t('settings.columns')}</label>
                   <input
                     type="number" min={10} max={60}
                     value={settings.grid_cols || 30}
@@ -313,7 +317,7 @@ export function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-ink-muted block mb-1.5">Rows</label>
+                  <label className="text-xs font-semibold text-ink-muted block mb-1.5">{t('settings.rows')}</label>
                   <input
                     type="number" min={8} max={40}
                     value={settings.grid_rows || 20}
@@ -321,16 +325,16 @@ export function SettingsPage() {
                     className="w-20 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
                   />
                 </div>
-                <p className="text-xs text-ink-muted self-end pb-2">Reopen the editor to apply.</p>
+                <p className="text-xs text-ink-muted self-end pb-2">{t('settings.reopenEditor')}</p>
               </div>
             </Card>
             <Card>
-              <CardHeader title="Prune Old Data" subtitle="Delete order records older than the retention period" />
+              <CardHeader title={t('settings.pruneOldData')} subtitle={t('settings.pruneSub')} />
               <Button variant="secondary" onClick={async () => {
                 const r = await window.feastAPI.settings.pruneOldData()
-                toast(r.success ? 'Old data pruned' : r.error, r.success ? 'success' : 'error')
+                toast(r.success ? t('settings.dataPruned') : r.error, r.success ? 'success' : 'error')
               }}>
-                Prune Now
+                {t('settings.pruneNow')}
               </Button>
             </Card>
           </div>
@@ -339,12 +343,12 @@ export function SettingsPage() {
         {/* Kitchen */}
         {activeSection === 'kitchen' && (
           <div className="space-y-4 max-w-lg">
-            <h2 className="font-bold text-lg text-ink">Kitchen Settings</h2>
+            <h2 className="font-bold text-lg text-ink">{t('settings.kitchenSettings')}</h2>
 
             <Card>
               <CardHeader
-                title="Approval Mode"
-                subtitle="When enabled, kitchen staff explicitly marks orders as ready. When disabled, orders auto-progress by time."
+                title={t('settings.approvalMode')}
+                subtitle={t('settings.approvalModeSub')}
               />
               <div className="flex items-center gap-3">
                 <button
@@ -354,7 +358,7 @@ export function SettingsPage() {
                   <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${settings.kitchen_approval_enabled !== 'false' ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
                 <span className="text-sm font-medium text-ink">
-                  {settings.kitchen_approval_enabled !== 'false' ? 'Approval required' : 'Timer-based (no approval)'}
+                  {settings.kitchen_approval_enabled !== 'false' ? t('settings.approvalRequired') : t('settings.timerBased')}
                 </span>
               </div>
             </Card>
@@ -362,14 +366,14 @@ export function SettingsPage() {
             {settings.kitchen_approval_enabled === 'false' && (
               <Card>
                 <CardHeader
-                  title="Timer Thresholds"
-                  subtitle="Colors shown on kitchen order cards based on elapsed time"
+                  title={t('settings.timerThresholds')}
+                  subtitle={t('settings.timerSub')}
                 />
                 <div className="space-y-4">
                   {[
-                    { key: 'kitchen_timer_green', label: 'Green until', color: 'text-green-600', default: '5' },
-                    { key: 'kitchen_timer_red',   label: 'Red after',   color: 'text-red-600',   default: '20' },
-                    { key: 'kitchen_timer_done',  label: 'Auto-done after', color: 'text-red-800', default: '30' }
+                    { key: 'kitchen_timer_green', label: t('settings.greenUntil'), color: 'text-green-600', default: '5' },
+                    { key: 'kitchen_timer_red',   label: t('settings.redAfter'),   color: 'text-red-600',   default: '20' },
+                    { key: 'kitchen_timer_done',  label: t('settings.autoDoneAfter'), color: 'text-red-800', default: '30' }
                   ].map(({ key, label, color, default: def }) => (
                     <div key={key} className="flex items-center gap-3">
                       <span className={`text-sm font-semibold ${color} w-32`}>{label}</span>
@@ -379,11 +383,11 @@ export function SettingsPage() {
                         onChange={e => setSetting(key, e.target.value)}
                         className="w-20 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
                       />
-                      <span className="text-sm text-ink-muted">minutes</span>
+                      <span className="text-sm text-ink-muted">{t('common.minutes')}</span>
                     </div>
                   ))}
                   <p className="text-xs text-ink-muted pt-1">
-                    Green → Amber (between green &amp; red) → Red → Blinking → Auto-done
+                    {t('settings.timerProgression')}
                   </p>
                 </div>
               </Card>
@@ -394,12 +398,12 @@ export function SettingsPage() {
         {/* Security */}
         {activeSection === 'security' && (
           <div className="space-y-4 max-w-lg">
-            <h2 className="font-bold text-lg text-ink">Security</h2>
+            <h2 className="font-bold text-lg text-ink">{t('settings.security')}</h2>
 
             <Card>
               <CardHeader
-                title="Password Protection"
-                subtitle="When set, a password is required to access Settings, Analytics, and Server"
+                title={t('settings.passwordProtection')}
+                subtitle={t('settings.passwordSub')}
               />
               <div className="space-y-3">
                 <div className="relative">
@@ -407,7 +411,7 @@ export function SettingsPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={passwordForm.next}
                     onChange={(e) => setPasswordForm((p) => ({ ...p, next: e.target.value }))}
-                    placeholder="New password (leave blank to disable)"
+                    placeholder={t('settings.newPasswordPlaceholder')}
                     className="w-full border border-border-warm rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:border-brand"
                   />
                   <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -416,13 +420,13 @@ export function SettingsPage() {
                 </div>
                 <Button size="sm" onClick={async () => {
                   await setSetting('settings_password', passwordForm.next)
-                  toast(passwordForm.next ? 'Password set' : 'Password disabled', 'success')
+                  toast(passwordForm.next ? t('settings.passwordSet') : t('settings.passwordDisabled'), 'success')
                   setPasswordForm({ current: '', next: '' })
                 }}>
-                  {passwordForm.next ? 'Set Password' : 'Disable Password'}
+                  {passwordForm.next ? t('settings.setPassword') : t('settings.disablePassword')}
                 </Button>
                 {settings.settings_password && (
-                  <p className="text-xs text-amber-600">⚠ Password is currently set. Enter a new one to change it, or leave blank to disable.</p>
+                  <p className="text-xs text-amber-600">{t('settings.passwordWarning')}</p>
                 )}
               </div>
             </Card>
@@ -430,27 +434,27 @@ export function SettingsPage() {
             {settings.settings_password && sessionUnlocked && (
               <Card>
                 <CardHeader
-                  title="Lock Now"
-                  subtitle="Re-lock protected sections immediately — next access will require the password"
+                  title={t('settings.lockNow')}
+                  subtitle={t('settings.lockNowSub')}
                 />
                 <Button
                   variant="secondary"
                   size="sm"
                   icon={Lock}
-                  onClick={() => { lock(); toast('Session locked', 'info') }}
+                  onClick={() => { lock(); toast(t('settings.sessionLocked'), 'info') }}
                 >
-                  Lock Session
+                  {t('settings.lockSession')}
                 </Button>
               </Card>
             )}
 
             <Card>
-              <CardHeader title="Protected Areas" />
+              <CardHeader title={t('settings.protectedAreas')} />
               <ul className="space-y-2 text-sm">
                 {[
-                  { label: 'Settings', desc: 'This entire section' },
-                  { label: 'Analytics', desc: 'Sales reports and campaign data' },
-                  { label: 'Server', desc: 'Waiter/kitchen server controls' },
+                  { label: t('settings.settingsArea'), desc: t('settings.settingsAreaDesc') },
+                  { label: t('settings.analyticsArea'), desc: t('settings.analyticsAreaDesc') },
+                  { label: t('settings.serverArea'), desc: t('settings.serverAreaDesc') },
                 ].map((item) => (
                   <li key={item.label} className="flex items-start gap-2">
                     <Lock size={13} className="text-ink-muted mt-0.5 flex-shrink-0" />
@@ -461,21 +465,55 @@ export function SettingsPage() {
             </Card>
           </div>
         )}
+
+        {/* Language */}
+        {activeSection === 'language' && (
+          <div className="space-y-4 max-w-lg">
+            <h2 className="font-bold text-lg text-ink">{t('settings.languageTitle')}</h2>
+            <Card>
+              <CardHeader title={t('settings.languageTitle')} subtitle={t('settings.languageSub')} />
+              <div className="flex gap-3">
+                {[
+                  { code: 'en', label: t('settings.english'), flag: '🇬🇧' },
+                  { code: 'tr', label: t('settings.turkish'), flag: '🇹🇷' }
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      i18n.changeLanguage(lang.code)
+                      localStorage.setItem('feast_language', lang.code)
+                    }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-1 ${
+                      i18n.language === lang.code
+                        ? 'border-brand bg-brand-pale'
+                        : 'border-border-warm hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-2xl">{lang.flag}</span>
+                    <span className={`font-semibold text-sm ${i18n.language === lang.code ? 'text-brand' : 'text-ink'}`}>
+                      {lang.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Add discount modal */}
-      <Modal open={showDiscountModal} onClose={() => setShowDiscountModal(false)} title="Add Discount" size="sm">
+      <Modal open={showDiscountModal} onClose={() => setShowDiscountModal(false)} title={t('settings.addDiscount')} size="sm">
         <div className="space-y-3">
           <input value={discountForm.label} onChange={(e) => setDiscountForm((f) => ({ ...f, label: e.target.value }))}
-            placeholder="Label (e.g. Staff Discount, Happy Hour)"
+            placeholder={t('settings.discountLabelPlaceholder')}
             className="w-full border border-border-warm rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand" autoFocus />
           <div className="relative">
             <input value={discountForm.pct} onChange={(e) => setDiscountForm((f) => ({ ...f, pct: e.target.value }))}
-              type="number" min={0} max={100} step={0.5} placeholder="Discount %"
+              type="number" min={0} max={100} step={0.5} placeholder={t('settings.discountPct')}
               className="w-full border border-border-warm rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand pr-8" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm">%</span>
           </div>
-          <Button onClick={handleSaveDiscount} disabled={!discountForm.label || !discountForm.pct} className="w-full">Save Discount</Button>
+          <Button onClick={handleSaveDiscount} disabled={!discountForm.label || !discountForm.pct} className="w-full">{t('settings.saveDiscount')}</Button>
         </div>
       </Modal>
     </div>

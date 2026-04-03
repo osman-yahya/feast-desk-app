@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart2, TrendingUp, Calendar, Package, DollarSign, ShoppingBag,
   Lock, ExternalLink, Clock, CreditCard, Percent, Brain, ChevronRight,
@@ -73,15 +74,16 @@ const SEV = {
 /* ------------------------------------------------------------------ */
 
 function MonthDetailModal({ open, onClose, month, byDay }) {
+  const { t } = useTranslation()
   if (!month) return null
   const days = (byDay || []).filter((d) => d.day.startsWith(month.month))
   return (
-    <Modal open={open} onClose={onClose} title={`Daily Breakdown — ${formatMonth(month.month)}`} size="lg">
+    <Modal open={open} onClose={onClose} title={t('analyze.dailyBreakdown', { month: formatMonth(month.month) })} size="lg">
       <div className="space-y-1 max-h-80 overflow-y-auto">
         <div className="grid grid-cols-4 text-[11px] font-semibold text-ink-muted uppercase pb-2 border-b border-border-warm">
-          <span>Date</span><span className="text-right">Orders</span><span className="text-right">Revenue</span><span className="text-right">Avg</span>
+          <span>{t('common.date')}</span><span className="text-right">{t('analyze.ordersLabel')}</span><span className="text-right">{t('common.revenue')}</span><span className="text-right">{t('common.avg')}</span>
         </div>
-        {days.length === 0 && <p className="text-sm text-ink-muted py-4 text-center">No daily data for this month.</p>}
+        {days.length === 0 && <p className="text-sm text-ink-muted py-4 text-center">{t('analyze.noDaily')}</p>}
         {days.map((d) => (
           <div key={d.day} className="grid grid-cols-4 py-2 text-sm border-b border-border-warm last:border-0">
             <span className="text-ink">{d.day}</span>
@@ -92,14 +94,15 @@ function MonthDetailModal({ open, onClose, month, byDay }) {
         ))}
       </div>
       <div className="flex justify-between pt-4 mt-4 border-t border-border-warm text-sm font-semibold">
-        <span className="text-ink">Total</span>
-        <span className="text-brand">{CUR}{month.total.toFixed(2)} from {month.count} orders</span>
+        <span className="text-ink">{t('common.total')}</span>
+        <span className="text-brand">{CUR}{month.total.toFixed(2)} {t('analyze.fromOrders', { count: month.count })}</span>
       </div>
     </Modal>
   )
 }
 
 function InsightDetailModal({ open, onClose, insight }) {
+  const { t } = useTranslation()
   if (!insight) return null
   const sev = SEV[insight.severity] || SEV.info
   return (
@@ -111,14 +114,14 @@ function InsightDetailModal({ open, onClose, insight }) {
 
         {insight.detail && (
           <div>
-            <p className="text-xs font-semibold text-ink-muted uppercase mb-1">Details</p>
+            <p className="text-xs font-semibold text-ink-muted uppercase mb-1">{t('analyze.details')}</p>
             <p className="text-sm text-ink whitespace-pre-line">{insight.detail}</p>
           </div>
         )}
 
         {insight.items && insight.items.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-ink-muted uppercase mb-2">Items</p>
+            <p className="text-xs font-semibold text-ink-muted uppercase mb-2">{t('analyze.itemsLabel')}</p>
             <div className="space-y-1 max-h-48 overflow-y-auto">
               {insight.items.map((it, i) => (
                 <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 text-sm">
@@ -136,7 +139,7 @@ function InsightDetailModal({ open, onClose, insight }) {
         )}
 
         <div className="p-4 rounded-xl bg-brand-pale/60 border border-brand/20">
-          <p className="text-xs font-semibold text-brand uppercase mb-1">Recommended Action</p>
+          <p className="text-xs font-semibold text-brand uppercase mb-1">{t('analyze.recommendedAction')}</p>
           <p className="text-sm text-ink">{insight.action}</p>
         </div>
       </div>
@@ -145,11 +148,12 @@ function InsightDetailModal({ open, onClose, insight }) {
 }
 
 function ItemsModal({ open, onClose, title, items }) {
+  const { t } = useTranslation()
   return (
     <Modal open={open} onClose={onClose} title={title} size="lg">
       <div className="space-y-1 max-h-96 overflow-y-auto">
         <div className="grid grid-cols-4 text-[11px] font-semibold text-ink-muted uppercase pb-2 border-b border-border-warm">
-          <span className="col-span-2">Item</span><span className="text-right">Orders</span><span className="text-right">Revenue</span>
+          <span className="col-span-2">{t('analyze.item')}</span><span className="text-right">{t('analyze.ordersLabel')}</span><span className="text-right">{t('common.revenue')}</span>
         </div>
         {(items || []).map((it, i) => (
           <div key={i} className="grid grid-cols-4 py-2 text-sm border-b border-border-warm last:border-0">
@@ -168,6 +172,7 @@ function ItemsModal({ open, onClose, title, items }) {
 /* ------------------------------------------------------------------ */
 
 export function AnalyzePage() {
+  const { t } = useTranslation()
   const level = useRestaurantStore((s) => s.level)
 
   const [range, setRange] = useState('30d')
@@ -212,14 +217,14 @@ export function AnalyzePage() {
     <div className="space-y-5 overflow-y-auto flex-1 min-h-0 pb-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="font-bold text-xl text-ink">Analyze</h1>
+        <h1 className="font-bold text-xl text-ink">{t('analyze.analyze')}</h1>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
             {[
-              { v: 'today', l: 'Today' },
-              { v: '7d', l: '7 Days' },
-              { v: '30d', l: '30 Days' },
-              { v: '90d', l: '90 Days' }
+              { v: 'today', l: t('analyze.today') },
+              { v: '7d', l: t('analyze.7days') },
+              { v: '30d', l: t('analyze.30days') },
+              { v: '90d', l: t('analyze.90days') }
             ].map((r) => (
               <button key={r.v} onClick={() => setRange(r.v)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${range === r.v ? 'bg-white shadow text-ink' : 'text-ink-muted hover:text-ink'}`}>
@@ -230,12 +235,12 @@ export function AnalyzePage() {
           {canAdvanced ? (
             <button onClick={() => setShowAdvanced(!showAdvanced)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${showAdvanced ? 'bg-brand text-white border-brand' : 'bg-white text-ink-muted border-border-warm hover:border-gray-300'}`}>
-              <TrendingUp size={13} /> Advanced
+              <TrendingUp size={13} /> {t('analyze.advanced')}
             </button>
           ) : (
             <button onClick={() => window.open('https://feast.tr/dash/premium', '_blank')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-400 bg-white">
-              <Lock size={12} /> Advanced (Level {ADVANCED_ANALYZE_MIN_LEVEL})
+              <Lock size={12} /> {t('analyze.advancedLevel', { level: ADVANCED_ANALYZE_MIN_LEVEL })}
             </button>
           )}
         </div>
@@ -249,25 +254,25 @@ export function AnalyzePage() {
         <>
           {/* ============ KPI CARDS ============ */}
           <div className={`grid gap-4 ${isAdv ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
-            <StatCard label={range === 'today' ? "Today's Revenue" : 'Period Revenue'} value={`${CUR}${stats.total_earnings?.toFixed(2)}`} icon={DollarSign} dark />
-            <StatCard label="Orders" value={stats.total_orders} icon={ShoppingBag} />
-            <StatCard label="Avg. Order" value={`${CUR}${stats.total_orders ? (stats.total_earnings / stats.total_orders).toFixed(2) : '0.00'}`} icon={BarChart2} dark />
-            <StatCard label="Categories" value={stats.by_category?.length || 0} icon={Package} />
+            <StatCard label={range === 'today' ? t('analyze.todayRevenue') : t('analyze.periodRevenue')} value={`${CUR}${stats.total_earnings?.toFixed(2)}`} icon={DollarSign} dark />
+            <StatCard label={t('analyze.ordersLabel')} value={stats.total_orders} icon={ShoppingBag} />
+            <StatCard label={t('analyze.avgOrder')} value={`${CUR}${stats.total_orders ? (stats.total_earnings / stats.total_orders).toFixed(2) : '0.00'}`} icon={BarChart2} dark />
+            <StatCard label={t('analyze.categoriesLabel')} value={stats.by_category?.length || 0} icon={Package} />
             {isAdv && (
-              <StatCard label="Avg. Items / Order" value={stats.avg_items_per_order || '—'} icon={ShoppingCart} />
+              <StatCard label={t('analyze.avgItemsPerOrder')} value={stats.avg_items_per_order || '—'} icon={ShoppingCart} />
             )}
           </div>
 
           {/* ============ REVENUE OVER TIME ============ */}
           {stats.by_day?.length > 0 && (
             <Card>
-              <CardHeader title="Revenue Over Time" />
+              <CardHeader title={t('analyze.revenueOverTime')} />
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={stats.by_day} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F5F0EB" />
                   <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#78716C' }} />
                   <YAxis tick={{ fontSize: 11, fill: '#78716C' }} />
-                  <Tooltip formatter={(v) => [`${CUR}${Number(v).toFixed(2)}`, 'Revenue']} />
+                  <Tooltip formatter={(v) => [`${CUR}${Number(v).toFixed(2)}`, t('common.revenue')]} />
                   <Line type="monotone" dataKey="total" stroke="#FF3131" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -278,10 +283,10 @@ export function AnalyzePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {stats.popular_items?.length > 0 && (
               <Card>
-                <CardHeader title="Top Items by Orders"
+                <CardHeader title={t('analyze.topItems')}
                   action={stats.popular_items.length > 8 && (
-                    <button onClick={() => setItemsModal({ title: 'All Items by Orders', items: stats.popular_items })}
-                      className="text-xs text-brand font-semibold hover:underline">View all</button>
+                    <button onClick={() => setItemsModal({ title: t('analyze.topItems'), items: stats.popular_items })}
+                      className="text-xs text-brand font-semibold hover:underline">{t('analyze.viewAll')}</button>
                   )} />
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={stats.popular_items.slice(0, 8)} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -297,7 +302,7 @@ export function AnalyzePage() {
 
             {stats.by_category?.length > 0 && (
               <Card>
-                <CardHeader title="Revenue by Category" />
+                <CardHeader title={t('analyze.revenueByCategory')} />
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie data={stats.by_category} dataKey="revenue" nameKey="name" cx="50%" cy="50%" outerRadius={70}
@@ -319,11 +324,11 @@ export function AnalyzePage() {
               {/* --- MONTHLY REVENUE TABLE --- */}
               {stats.by_month?.length > 0 && (
                 <>
-                  <SectionTitle icon={Calendar} title="Monthly Revenue" />
+                  <SectionTitle icon={Calendar} title={t('analyze.monthlyRevenue')} />
                   <Card>
                     <div className="space-y-1">
                       <div className="grid grid-cols-5 text-[11px] font-semibold text-ink-muted uppercase pb-2 border-b border-border-warm">
-                        <span>Month</span><span className="text-right">Orders</span><span className="text-right">Revenue</span><span className="text-right">Avg Order</span><span></span>
+                        <span>{t('common.month')}</span><span className="text-right">{t('analyze.ordersLabel')}</span><span className="text-right">{t('common.revenue')}</span><span className="text-right">{t('analyze.avgOrderShort')}</span><span></span>
                       </div>
                       {stats.by_month.map((m) => (
                         <div key={m.month} className="grid grid-cols-5 items-center py-2.5 border-b border-border-warm last:border-0 hover:bg-gray-50 rounded-lg transition-colors">
@@ -334,7 +339,7 @@ export function AnalyzePage() {
                           <div className="text-right">
                             <button onClick={() => setMonthModal(m)}
                               className="text-[11px] text-brand font-semibold hover:underline inline-flex items-center gap-0.5">
-                              Daily <ChevronRight size={12} />
+                              {t('analyze.daily')} <ChevronRight size={12} />
                             </button>
                           </div>
                         </div>
@@ -348,7 +353,7 @@ export function AnalyzePage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {stats.by_hour?.length > 0 && (
                   <div>
-                    <SectionTitle icon={Clock} title="Hourly Distribution" />
+                    <SectionTitle icon={Clock} title={t('analyze.hourlyDistribution')} />
                     <Card className="mt-2">
                       <ResponsiveContainer width="100%" height={180}>
                         <BarChart data={stats.by_hour} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -356,7 +361,7 @@ export function AnalyzePage() {
                           <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#78716C' }} tickFormatter={(h) => `${h}:00`} />
                           <YAxis tick={{ fontSize: 10, fill: '#78716C' }} />
                           <Tooltip labelFormatter={(h) => `${h}:00–${h + 1}:00`}
-                            formatter={(v, name) => [name === 'count' ? `${v} orders` : `${CUR}${Number(v).toFixed(2)}`, name === 'count' ? 'Orders' : 'Revenue']} />
+                            formatter={(v, name) => [name === 'count' ? `${v} orders` : `${CUR}${Number(v).toFixed(2)}`, name === 'count' ? t('analyze.ordersLabel') : t('common.revenue')]} />
                           <Bar dataKey="count" fill="#FF3131" radius={[3, 3, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -366,14 +371,14 @@ export function AnalyzePage() {
 
                 {stats.by_weekday?.length > 0 && (
                   <div>
-                    <SectionTitle icon={Calendar} title="Day-of-Week Performance" />
+                    <SectionTitle icon={Calendar} title={t('analyze.dayOfWeek')} />
                     <Card className="mt-2">
                       <ResponsiveContainer width="100%" height={180}>
                         <BarChart data={stats.by_weekday.map((d) => ({ ...d, name: DAY_NAMES[d.day] }))} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F5F0EB" />
                           <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#78716C' }} />
                           <YAxis tick={{ fontSize: 10, fill: '#78716C' }} />
-                          <Tooltip formatter={(v, name) => [name === 'total' ? `${CUR}${Number(v).toFixed(2)}` : v, name === 'total' ? 'Revenue' : 'Orders']} />
+                          <Tooltip formatter={(v, name) => [name === 'total' ? `${CUR}${Number(v).toFixed(2)}` : v, name === 'total' ? t('common.revenue') : t('analyze.ordersLabel')]} />
                           <Bar dataKey="total" fill="#1C1917" radius={[3, 3, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -386,7 +391,7 @@ export function AnalyzePage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {stats.payment_methods?.length > 0 && (
                   <Card>
-                    <CardHeader title="Payment Methods" />
+                    <CardHeader title={t('analyze.paymentMethods')} />
                     <div className="flex items-center gap-6">
                       <div className="w-32 h-32 flex-shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -420,27 +425,27 @@ export function AnalyzePage() {
 
                 {stats.discount_stats && (
                   <Card>
-                    <CardHeader title="Discount Usage" />
+                    <CardHeader title={t('analyze.discountUsage')} />
                     <div className="space-y-4">
                       <div className="grid grid-cols-3 gap-3">
                         <div className="text-center p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-ink-muted">Discounted Orders</p>
+                          <p className="text-xs text-ink-muted">{t('analyze.discountedOrders')}</p>
                           <p className="text-lg font-bold text-ink">{stats.discount_stats.orders_with_discount}</p>
                         </div>
                         <div className="text-center p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-ink-muted">Total Discounted</p>
+                          <p className="text-xs text-ink-muted">{t('analyze.totalDiscounted')}</p>
                           <p className="text-lg font-bold text-brand">{CUR}{stats.discount_stats.total_discount.toFixed(2)}</p>
                         </div>
                         <div className="text-center p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-ink-muted">% of Orders</p>
+                          <p className="text-xs text-ink-muted">{t('analyze.pctOfOrders')}</p>
                           <p className="text-lg font-bold text-ink">{stats.discount_stats.pct_of_orders}%</p>
                         </div>
                       </div>
                       {stats.total_orders > 0 && (
                         <div className="text-xs text-ink-muted">
                           {stats.discount_stats.pct_of_orders > 30
-                            ? 'High discount usage — review whether discounts are driving incremental sales or eroding margin.'
-                            : 'Discount usage is within a healthy range.'}
+                            ? t('analyze.highDiscountWarning')
+                            : t('analyze.healthyDiscount')}
                         </div>
                       )}
                     </div>
@@ -451,7 +456,7 @@ export function AnalyzePage() {
               {/* --- CROSS-PRODUCT MATRIX --- */}
               {stats.cross_product?.length > 0 && (
                 <Card>
-                  <CardHeader title="Products Often Ordered Together" subtitle="Items appearing in the same checkout" />
+                  <CardHeader title={t('analyze.crossProduct')} subtitle={t('analyze.crossProductSub')} />
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {stats.cross_product.map((pair, i) => (
                       <div key={i} className="flex items-center justify-between py-2 border-b border-border-warm last:border-0">
@@ -466,9 +471,9 @@ export function AnalyzePage() {
               {/* --- CAMPAIGN MANAGER --- */}
               {stats.campaign_suggestions?.length > 0 && (
                 <Card>
-                  <CardHeader title="Campaign Manager"
-                    subtitle="Promotion suggestions based on sales data"
-                    action={<span className="px-2 py-0.5 bg-brand-pale text-brand text-xs font-bold rounded-pill">Smart</span>} />
+                  <CardHeader title={t('analyze.campaignManager')}
+                    subtitle={t('analyze.campaignSub')}
+                    action={<span className="px-2 py-0.5 bg-brand-pale text-brand text-xs font-bold rounded-pill">{t('analyze.smart')}</span>} />
                   <div className="space-y-3">
                     {stats.campaign_suggestions.map((s, i) => (
                       <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${s.suggestion.includes('Low') ? 'border-amber-200 bg-amber-50' : s.suggestion.includes('High') ? 'border-green-200 bg-green-50' : 'border-border-warm bg-gray-50'}`}>
@@ -489,7 +494,7 @@ export function AnalyzePage() {
               {/* ============ AI INSIGHTS ============ */}
               {stats.ai_insights?.length > 0 && (
                 <>
-                  <SectionTitle icon={Brain} title="AI Analysis" badge="feast AI" />
+                  <SectionTitle icon={Brain} title={t('analyze.aiAnalysis')} badge={t('analyze.feastAI')} />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {stats.ai_insights.map((ins, i) => {
                       const sev = SEV[ins.severity] || SEV.info
@@ -521,9 +526,9 @@ export function AnalyzePage() {
           {showAdvanced && !canAdvanced && (
             <Card className="text-center !p-12">
               <Lock size={32} className="text-gray-300 mx-auto mb-3" />
-              <p className="font-bold text-ink mb-1">Advanced Analytics requires Level {ADVANCED_ANALYZE_MIN_LEVEL}</p>
-              <p className="text-sm text-ink-muted mb-4">Upgrade your feast. subscription to unlock detailed analytics and AI analysis.</p>
-              <Button onClick={() => window.open('https://feast.tr/dash/premium', '_blank')} icon={ExternalLink} variant="secondary">Upgrade on feast.tr</Button>
+              <p className="font-bold text-ink mb-1">{t('analyze.advancedRequired', { level: ADVANCED_ANALYZE_MIN_LEVEL })}</p>
+              <p className="text-sm text-ink-muted mb-4">{t('analyze.upgradeHint')}</p>
+              <Button onClick={() => window.open('https://feast.tr/dash/premium', '_blank')} icon={ExternalLink} variant="secondary">{t('analyze.upgradeBtn')}</Button>
             </Card>
           )}
         </>

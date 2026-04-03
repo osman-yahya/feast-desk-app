@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ExternalLink, Wifi, CheckCircle, ArrowRight } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 
 export function ConnectPage() {
+  const { t } = useTranslation()
   const [code, setCode] = useState('')
   const { connect, isLoading, error, isConnected, restaurant } = useRestaurantStore()
 
@@ -20,8 +22,8 @@ export function ConnectPage() {
             <CheckCircle size={32} className="text-green-600" />
           </div>
           <div>
-            <h1 className="font-bold text-xl text-ink">Connected!</h1>
-            <p className="text-sm text-ink-muted mt-1">Redirecting to dashboard...</p>
+            <h1 className="font-bold text-xl text-ink">{t('connect.connected')}</h1>
+            <p className="text-sm text-ink-muted mt-1">{t('connect.redirecting')}</p>
           </div>
         </div>
       </div>
@@ -40,10 +42,10 @@ export function ConnectPage() {
 
           <div className="space-y-4">
             {[
-              { icon: '🧾', title: 'Billing & Checkout', desc: 'Fast cashier and table-based orders' },
-              { icon: '🗺️', title: 'Floor Plan Editor', desc: 'Visual table management with drag & drop' },
-              { icon: '📊', title: 'Analytics', desc: 'Earnings, popular items, cross-product analysis' },
-              { icon: '📡', title: 'Waiter Server', desc: 'Let waiters order from their phones' }
+              { icon: '🧾', title: t('connect.billingTitle'), desc: t('connect.billingDesc') },
+              { icon: '🗺️', title: t('connect.floorPlanTitle'), desc: t('connect.floorPlanDesc') },
+              { icon: '📊', title: t('connect.analyticsTitle'), desc: t('connect.analyticsDesc') },
+              { icon: '📡', title: t('connect.waiterTitle'), desc: t('connect.waiterDesc') }
             ].map((f) => (
               <div key={f.title} className="flex items-start gap-3 text-left">
                 <span className="text-2xl">{f.icon}</span>
@@ -65,18 +67,18 @@ export function ConnectPage() {
             <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center">
               <span className="text-white font-black text-base">F</span>
             </div>
-            <span className="font-black text-xl text-ink tracking-tight">FEAST DESK</span>
+            <span className="font-black text-xl text-ink tracking-tight">{t('connect.appTitle')}</span>
           </div>
 
           <div>
-            <h1 className="font-bold text-2xl text-ink">Connect Restaurant</h1>
+            <h1 className="font-bold text-2xl text-ink">{t('connect.connectRestaurant')}</h1>
             <p className="text-sm text-ink-muted mt-1.5">
-              Enter the connection code from your{' '}
+              {t('connect.enterCode')}{' '}
               <button
                 onClick={() => window.open('https://feast.tr/dash', '_blank')}
                 className="text-brand hover:underline font-medium"
               >
-                feast.tr dashboard
+                {t('connect.dashboard')}
               </button>
             </p>
           </div>
@@ -84,21 +86,21 @@ export function ConnectPage() {
           <form onSubmit={handleConnect} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-ink-muted mb-1.5 uppercase tracking-wide">
-                Connection Code
+                {t('connect.connectionCode')}
               </label>
               <div className="relative">
                 <Wifi size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder="e.g. 12345-Abc1a2"
+                  placeholder={t('connect.codePlaceholder')}
                   className="w-full border border-border-warm rounded-xl pl-10 pr-4 py-3 text-sm text-ink placeholder:text-gray-400 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all"
                   autoFocus
                   spellCheck={false}
                 />
               </div>
               <p className="text-xs text-ink-muted mt-1.5">
-                Format: <code className="font-mono bg-gray-100 px-1 rounded text-xs">&lt;restaurant-id&gt;-&lt;secret&gt;</code>
+                {t('connect.codeFormat')} <code className="font-mono bg-gray-100 px-1 rounded text-xs">{t('connect.codeFormatValue')}</code>
               </p>
             </div>
 
@@ -116,7 +118,7 @@ export function ConnectPage() {
               size="lg"
               icon={ArrowRight}
             >
-              Connect
+              {t('connect.connect')}
             </Button>
           </form>
 
@@ -126,14 +128,14 @@ export function ConnectPage() {
               className="flex items-center gap-2 text-sm text-ink-muted hover:text-brand transition-colors"
             >
               <ExternalLink size={14} />
-              Unlock more features on feast.tr
+              {t('connect.unlockFeatures')}
             </button>
             <button
               onClick={() => window.open('https://feast.tr/dash/menus', '_blank')}
               className="flex items-center gap-2 text-sm text-ink-muted hover:text-brand transition-colors"
             >
               <ExternalLink size={14} />
-              Edit your menu on feast.tr
+              {t('connect.editMenu')}
             </button>
           </div>
         </div>
