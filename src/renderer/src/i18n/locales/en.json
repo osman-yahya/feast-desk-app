@@ -65,7 +65,10 @@
     "serverDesc": "Local waiter & kitchen server",
     "settings": "Settings",
     "settingsDesc": "App configuration",
-    "requiresLevel": "requires level {{level}}"
+    "requiresLevel": "requires level {{level}}",
+    "moduleLocked": "{{module}} is Locked",
+    "moduleLockedDesc": "This module requires <strong>Level {{level}}</strong> subscription. Upgrade your feast. plan to unlock this feature.",
+    "upgradeOnFeast": "Upgrade on feast.tr"
   },
 
   "directOrder": {

@@ -46,14 +46,13 @@ export function Sidebar({ collapsed, onToggle }) {
           return (
             <NavLink
               key={mod.id}
-              to={isLocked ? '#' : mod.path}
-              onClick={(e) => isLocked && e.preventDefault()}
+              to={mod.path}
               title={collapsed ? (isLocked ? `${moduleLabels[mod.id] || mod.label} — ${t('modules.requiresLevel', { level: mod.minLevel })}` : (moduleLabels[mod.id] || mod.label)) : undefined}
               className={({ isActive }) => [
                 'flex items-center rounded-xl text-sm font-medium transition-all',
                 collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5',
                 isLocked
-                  ? 'text-gray-300 cursor-not-allowed'
+                  ? 'text-ink-muted hover:bg-gray-50'
                   : isActive
                   ? 'bg-brand-pale text-brand'
                   : 'text-ink-muted hover:bg-gray-50 hover:text-ink'

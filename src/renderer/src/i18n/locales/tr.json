@@ -65,7 +65,10 @@
     "serverDesc": "Yerel garson ve mutfak sunucusu",
     "settings": "Ayarlar",
     "settingsDesc": "Uygulama yapılandırması",
-    "requiresLevel": "seviye {{level}} gerekli"
+    "requiresLevel": "seviye {{level}} gerekli",
+    "moduleLocked": "{{module}} Kilitli",
+    "moduleLockedDesc": "Bu modül <strong>Seviye {{level}}</strong> abonelik gerektirir. Bu özelliğin kilidini açmak için feast. planınızı yükseltin.",
+    "upgradeOnFeast": "feast.tr'de Yükselt"
   },
 
   "directOrder": {

@@ -56,7 +56,7 @@ export function ServerPage() {
   const kitchenUrl = isRunning && baseUrl ? `${baseUrl}?role=kitchen` : null
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 overflow-y-auto flex-1 min-h-0">
       <div className="flex items-center justify-between">
         <h1 className="font-bold text-xl text-ink">{t('server.localServer')}</h1>
         <PillBadge

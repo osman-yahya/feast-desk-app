@@ -33,7 +33,7 @@ export const MODULE_CONFIG = [
     label: 'Server',
     icon: 'Wifi',
     path: '/server',
-    minLevel: 3,
+    minLevel: 2,
     description: 'Local waiter & kitchen server'
   },
   {
@@ -47,11 +47,11 @@ export const MODULE_CONFIG = [
   }
 ]
 
-export const ADVANCED_ANALYZE_MIN_LEVEL = 4
+export const ADVANCED_ANALYZE_MIN_LEVEL = 3
 
 // Server connection mode level gates (within the server module)
-export const FREE_TUNNEL_MIN_LEVEL = 4
-export const FEAST_TUNNEL_MIN_LEVEL = 5
+export const FREE_TUNNEL_MIN_LEVEL = 2
+export const FEAST_TUNNEL_MIN_LEVEL = 3
 
 export function canAccess(moduleId, level) {
   const mod = MODULE_CONFIG.find((m) => m.id === moduleId)
