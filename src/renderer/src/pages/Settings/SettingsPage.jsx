@@ -482,6 +482,7 @@ export function SettingsPage() {
                     onClick={() => {
                       i18n.changeLanguage(lang.code)
                       localStorage.setItem('feast_language', lang.code)
+                      window.feastAPI.settings.set('language', lang.code)
                     }}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-1 ${
                       i18n.language === lang.code

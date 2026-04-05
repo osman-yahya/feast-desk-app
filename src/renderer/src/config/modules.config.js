@@ -50,7 +50,6 @@ export const MODULE_CONFIG = [
 export const ADVANCED_ANALYZE_MIN_LEVEL = 3
 
 // Server connection mode level gates (within the server module)
-export const FREE_TUNNEL_MIN_LEVEL = 2
 export const FEAST_TUNNEL_MIN_LEVEL = 3
 
 export function canAccess(moduleId, level) {

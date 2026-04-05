@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, Menu } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -60,6 +60,34 @@ protocol.registerSchemesAsPrivileged([
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('tr.feast.desk')
+
+  // Set explicit application menu to prevent macOS representedObject warnings
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([
+      {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      },
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' }
+        ]
+      }
+    ]))
+  } else {
+    Menu.setApplicationMenu(null)
+  }
 
   // Handle feast-local:// URLs → serve local files safely
   protocol.handle('feast-local', (request) => {

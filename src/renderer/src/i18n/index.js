@@ -13,4 +13,9 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false }
 })
 
+// Sync current language to SQLite DB so the server SPA can read it
+if (window.feastAPI?.settings?.set) {
+  window.feastAPI.settings.set('language', i18n.language)
+}
+
 export default i18n

@@ -2,7 +2,6 @@ import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import { networkInterfaces } from 'os'
 import QRCode from 'qrcode'
-import localtunnel from 'localtunnel'
 import { startFeastTunnel, stopFeastTunnel, getFeastTunnelStatus } from './feast-tunnel.service.js'
 
 let httpServer = null
@@ -10,8 +9,7 @@ let wss = null
 let localIP = null
 let serverPort = null
 let mainWindowRef = null
-let tunnelInstance = null
-let connectionMode = 'local' // 'local' | 'tunnel' | 'feast-tunnel'
+let connectionMode = 'local' // 'local' | 'feast-tunnel'
 let resolveTableNameFn = null
 
 // Track connected clients by role
@@ -67,17 +65,6 @@ export async function startServer(port, app, mainWindow, mode = 'local', credent
     httpServer.on('error', reject)
   })
 
-  // Start localtunnel if mode is 'tunnel'
-  if (mode === 'tunnel') {
-    try {
-      tunnelInstance = await localtunnel({ port: serverPort })
-      tunnelInstance.on('close', () => { tunnelInstance = null })
-    } catch (err) {
-      await stopServer()
-      return { success: false, error: `Tunnel failed: ${err.message}` }
-    }
-  }
-
   // Start feast tunnel if mode is 'feast-tunnel'
   if (mode === 'feast-tunnel') {
     if (!credentials?.restaurantId || !credentials?.secret) {
@@ -103,15 +90,11 @@ export async function startServer(port, app, mainWindow, mode = 'local', credent
     port: serverPort,
     ip: localIP,
     mode: connectionMode,
-    tunnelUrl: tunnelInstance?.url || null
+    tunnelUrl: null
   }
 }
 
 export async function stopServer() {
-  if (tunnelInstance) {
-    try { tunnelInstance.close() } catch {}
-    tunnelInstance = null
-  }
   if (connectionMode === 'feast-tunnel') {
     try { stopFeastTunnel() } catch {}
   }
@@ -148,7 +131,7 @@ export function getServerStatus() {
     port: serverPort,
     ip: localIP,
     mode: connectionMode,
-    tunnelUrl: tunnelInstance?.url || feastTunnel?.tunnelUrl || null,
+    tunnelUrl: feastTunnel?.tunnelUrl || null,
     waiter_clients: clients.waiter.size,
     kitchen_clients: clients.kitchen.size
   }
@@ -157,7 +140,7 @@ export function getServerStatus() {
 export async function generateQR(role = 'waiter') {
   if (!httpServer) return null
   const feastTunnel = connectionMode === 'feast-tunnel' ? getFeastTunnelStatus() : null
-  const baseUrl = tunnelInstance?.url || feastTunnel?.tunnelUrl || `http://${localIP}:${serverPort}`
+  const baseUrl = feastTunnel?.tunnelUrl || `http://${localIP}:${serverPort}`
   const url = role === 'kitchen' ? `${baseUrl}?role=kitchen` : `${baseUrl}/waiter`
   return QRCode.toDataURL(url)
 }
