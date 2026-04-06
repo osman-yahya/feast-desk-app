@@ -27,7 +27,8 @@
     "month": "Ay",
     "revenue": "Gelir",
     "date": "Tarih",
-    "avg": "Ort"
+    "avg": "Ort",
+    "custom": "Özel"
   },
 
   "connect": {
@@ -51,7 +52,11 @@
     "unlockFeatures": "feast.tr'de daha fazla özellik açın",
     "editMenu": "Menünüzü feast.tr'de düzenleyin",
     "connected": "Bağlandı!",
-    "redirecting": "Panele yönlendiriliyor..."
+    "redirecting": "Panele yönlendiriliyor...",
+    "openKeypad": "Ekran klavyesini aç",
+    "uiModeTitle": "Görünüm modu",
+    "uiModeTouch": "Dokunmatik",
+    "uiModeCompact": "Kompakt"
   },
 
   "modules": {
@@ -261,6 +266,14 @@
 
   "settings": {
     "cacheMenu": "Önbellek ve Menü",
+    "uiMode": "Görünüm Modu",
+    "uiModeTitle": "Uygulama görünümünü seçin",
+    "uiModeSub": "Dokunmatik mod düğmeleri, yazıları ve boşlukları büyütür. Kompakt mod ise klasik sıkışık düzendir.",
+    "uiModeTouch": "Dokunmatik",
+    "uiModeTouchDesc": "Büyük düğmeler, dokunmatik ekranlar için ideal",
+    "uiModeCompact": "Kompakt",
+    "uiModeCompactDesc": "Klasik sıkışık düzen, fare/klavye için uygun",
+    "uiModeNote": "Analitik sayfası ve garson/mutfak sunucu arayüzü büyütülmez.",
     "endOfDay": "Gün Sonu",
     "discounts": "İndirimler",
     "exportImport": "Dışa / İçe Aktar",

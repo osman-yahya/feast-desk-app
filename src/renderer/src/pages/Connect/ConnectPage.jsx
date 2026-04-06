@@ -1,13 +1,18 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, Wifi, CheckCircle, ArrowRight } from 'lucide-react'
+import { ExternalLink, Wifi, CheckCircle, ArrowRight, Keyboard, Hand, Minimize2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
+import { TouchKeypad } from '../../components/ui/TouchKeypad.jsx'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
+import { useSettingsStore } from '../../store/useSettingsStore.js'
 
 export function ConnectPage() {
   const { t } = useTranslation()
   const [code, setCode] = useState('')
+  const [showKeypad, setShowKeypad] = useState(false)
   const { connect, isLoading, error, isConnected, restaurant } = useRestaurantStore()
+  const { uiMode, setUiMode } = useSettingsStore()
+  const isTouch = uiMode === 'touch'
 
   async function handleConnect(e) {
     e.preventDefault()
@@ -94,10 +99,20 @@ export function ConnectPage() {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder={t('connect.codePlaceholder')}
-                  className="w-full border border-border-warm rounded-xl pl-10 pr-4 py-3 text-sm text-ink placeholder:text-gray-400 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all"
-                  autoFocus
+                  className="w-full border border-border-warm rounded-xl pl-10 pr-12 py-3 text-sm text-ink placeholder:text-gray-400 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all"
+                  autoFocus={!isTouch}
                   spellCheck={false}
+                  readOnly={isTouch}
+                  onFocus={() => { if (isTouch) setShowKeypad(true) }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowKeypad(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-gray-100 text-ink-muted transition-colors"
+                  title={t('connect.openKeypad')}
+                >
+                  <Keyboard size={16} />
+                </button>
               </div>
               <p className="text-xs text-ink-muted mt-1.5">
                 {t('connect.codeFormat')} <code className="font-mono bg-gray-100 px-1 rounded text-xs">{t('connect.codeFormatValue')}</code>
@@ -122,6 +137,39 @@ export function ConnectPage() {
             </Button>
           </form>
 
+          {/* UI mode switcher */}
+          <div className="pt-4 border-t border-border-warm">
+            <p className="text-xs font-semibold text-ink-muted mb-2 uppercase tracking-wide">
+              {t('connect.uiModeTitle')}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setUiMode('touch')}
+                className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl border-2 transition-all ${
+                  isTouch ? 'border-brand bg-brand-pale' : 'border-border-warm hover:border-gray-300'
+                }`}
+              >
+                <Hand size={18} className={isTouch ? 'text-brand' : 'text-ink-muted'} />
+                <span className={`text-xs font-semibold ${isTouch ? 'text-brand' : 'text-ink'}`}>
+                  {t('connect.uiModeTouch')}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUiMode('compact')}
+                className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl border-2 transition-all ${
+                  !isTouch ? 'border-brand bg-brand-pale' : 'border-border-warm hover:border-gray-300'
+                }`}
+              >
+                <Minimize2 size={18} className={!isTouch ? 'text-brand' : 'text-ink-muted'} />
+                <span className={`text-xs font-semibold ${!isTouch ? 'text-brand' : 'text-ink'}`}>
+                  {t('connect.uiModeCompact')}
+                </span>
+              </button>
+            </div>
+          </div>
+
           <div className="pt-4 border-t border-border-warm flex flex-col gap-2">
             <button
               onClick={() => window.open('https://feast.tr/dash/premium', '_blank')}
@@ -140,6 +188,19 @@ export function ConnectPage() {
           </div>
         </div>
       </div>
+
+      {/* Touch keypad for secret entry */}
+      <TouchKeypad
+        open={showKeypad}
+        value={code}
+        mode="text"
+        title={t('connect.connectionCode')}
+        placeholder={t('connect.codePlaceholder')}
+        maxLength={64}
+        onChange={setCode}
+        onClose={() => setShowKeypad(false)}
+        onSubmit={(v) => { setCode(v); setShowKeypad(false) }}
+      />
     </div>
   )
 }

@@ -3,6 +3,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------- */
+/*  Touch mode                                                       */
+/*  --------------------------------------------------------------  */
+/*  Tailwind's default scale is rem-based. By bumping <html> font    */
+/*  size from 16px to 20px (1.25x) every rem-based size (padding,    */
+/*  margin, width, height, text) expands proportionally — giving us  */
+/*  a touchscreen-friendly layout without touching any component.    */
+/*  Viewport units (100vh / h-screen) are NOT affected, so layouts   */
+/*  that rely on full-height containers still fit on screen.         */
+html.ui-touch {
+  font-size: 20px;
+}
+/* Bigger default tap targets (any bare <button> without a utility) */
+html.ui-touch button {
+  touch-action: manipulation;
+}
+
 :root {
   --color-bg: #FFFDF8;
   --color-surface: #FFFFFF;

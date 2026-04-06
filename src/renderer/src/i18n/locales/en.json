@@ -27,7 +27,8 @@
     "month": "Month",
     "revenue": "Revenue",
     "date": "Date",
-    "avg": "Avg"
+    "avg": "Avg",
+    "custom": "Custom"
   },
 
   "connect": {
@@ -51,7 +52,11 @@
     "unlockFeatures": "Unlock more features on feast.tr",
     "editMenu": "Edit your menu on feast.tr",
     "connected": "Connected!",
-    "redirecting": "Redirecting to dashboard..."
+    "redirecting": "Redirecting to dashboard...",
+    "openKeypad": "Open on-screen keypad",
+    "uiModeTitle": "Display mode",
+    "uiModeTouch": "Touchscreen",
+    "uiModeCompact": "Compact"
   },
 
   "modules": {
@@ -261,6 +266,14 @@
 
   "settings": {
     "cacheMenu": "Cache & Menu",
+    "uiMode": "Display Mode",
+    "uiModeTitle": "Choose how the app looks",
+    "uiModeSub": "Touchscreen mode enlarges buttons, text and spacing. Compact mode is the classic dense layout.",
+    "uiModeTouch": "Touchscreen",
+    "uiModeTouchDesc": "Bigger buttons, ideal for touch displays",
+    "uiModeCompact": "Compact",
+    "uiModeCompactDesc": "Classic dense layout, best for mouse/keyboard",
+    "uiModeNote": "Analytics and the waiter/kitchen server UI are never resized.",
     "endOfDay": "End of Day",
     "discounts": "Discounts",
     "exportImport": "Export / Import",
