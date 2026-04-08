@@ -152,7 +152,9 @@
     .timer-badge.red   { background: #FEE2E2; color: #991B1B; }
     .kitchen-item { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #F5F0EB; font-size: 14px; }
     .kitchen-item:last-of-type { border-bottom: none; }
-    .kitchen-item.new { color: #FF3131; font-weight: 600; }
+    .kitchen-item.new { color: #FF3131; font-weight: 600; background: #FFF5F5; border-radius: 6px; padding: 7px 6px; margin: 0 -6px; }
+    .new-items-banner { background: #FFF5F5; border: 1.5px solid #FCA5A5; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .new-items-banner span { font-size: 12px; font-weight: 600; color: #DC2626; }
     .kitchen-actions { margin-top: 12px; display: flex; gap: 8px; }
 
     /* ── Status indicator ── */
@@ -227,29 +229,29 @@
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div class="card-title" id="order-card-title" style="margin-bottom:0">Current Order</div>
-        <span style="font-size:11px;color:#16A34A;font-weight:600">✓ Auto-saved</span>
+        <span id="order-auto-saved" style="font-size:11px;color:#16A34A;font-weight:600">✓ Auto-saved</span>
       </div>
       <div id="order-items-list"></div>
       <div id="order-total-row" style="display:none;padding-top:10px;border-top:1.5px solid #E7E0D8;margin-top:8px;">
         <div class="bill-line total" style="font-size:15px;">
-          <span>Total</span><span id="order-total-val" style="color:#FF3131"></span>
+          <span id="order-total-label">Total</span><span id="order-total-val" style="color:#FF3131"></span>
         </div>
       </div>
     </div>
     <div class="card" id="checkout-section" style="display:none">
-      <div class="card-title">Checkout</div>
+      <div class="card-title" id="checkout-label">Checkout</div>
       <div class="discount-chips" id="order-discount-chips"></div>
       <div class="pay-methods">
         <div class="pay-method selected" onclick="selectPayMethod('cash')" id="pay-cash">Cash</div>
         <div class="pay-method" onclick="selectPayMethod('card')" id="pay-card">Card</div>
         <div class="pay-method" onclick="selectPayMethod('other')" id="pay-other">Other</div>
       </div>
-      <button class="btn success" onclick="openCheckoutModal()">🧾 Build Bill &amp; Pay</button>
-      <button class="btn secondary" style="margin-top:8px" onclick="openSplitModal()">✂️ Split Bill</button>
+      <button class="btn success" id="build-bill-btn" onclick="openCheckoutModal()">🧾 Build Bill &amp; Pay</button>
+      <button class="btn secondary" id="split-bill-btn" style="margin-top:8px" onclick="openSplitModal()">✂️ Split Bill</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn secondary" style="flex:1" onclick="goTab('menu')">➕ Add More</button>
-      <button class="btn dark" style="flex:1;color:white" onclick="finishTable()">✓ Done</button>
+      <button class="btn secondary" id="add-more-btn" style="flex:1" onclick="goTab('menu')">➕ Add More</button>
+      <button class="btn dark" id="done-btn" style="flex:1;color:white" onclick="finishTable()">✓ Done</button>
     </div>
   </div>
 </div>
@@ -260,7 +262,7 @@
     <p style="font-weight:600">Select a table first (Tables tab)</p>
   </div>
   <div id="menu-content" style="display:none">
-    <div class="card-title" style="padding:0 4px 8px">Adding to: <span id="menu-table-label" style="color:#FF3131;font-weight:700"></span></div>
+    <div class="card-title" id="menu-adding-to" style="padding:0 4px 8px">Adding to: <span id="menu-table-label" style="color:#FF3131;font-weight:700"></span></div>
     <div class="cat-tabs" id="cat-tabs"></div>
     <div id="menu-items"></div>
   </div>
@@ -268,7 +270,7 @@
   <div id="menu-order-bar" onclick="goTab('order')"
     style="display:none;position:sticky;bottom:76px;background:#FF3131;color:white;border-radius:14px;padding:13px 18px;margin-top:14px;flex-direction:row;justify-content:space-between;align-items:center;cursor:pointer;box-shadow:0 4px 16px rgba(255,49,49,0.35);">
     <span id="menu-order-bar-text" style="font-weight:600;font-size:14px"></span>
-    <span style="font-weight:700;font-size:13px">View Order →</span>
+    <span id="menu-order-bar-action" style="font-weight:700;font-size:13px">View Order →</span>
   </div>
 </div>
 
@@ -286,7 +288,7 @@
 <div id="page-kitchen" class="page">
   <div class="card" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <span class="status-pill offline" id="kitchen-status"><span class="status-dot"></span>Connecting…</span>
-    <span style="font-size:12px;color:#78716C;flex:1">New orders appear automatically.</span>
+    <span id="kitchen-hint" style="font-size:12px;color:#78716C;flex:1">New orders appear automatically.</span>
   </div>
   <div id="kitchen-orders"></div>
   <div id="kitchen-empty" style="text-align:center;padding:40px 20px;color:#78716C;display:none">
@@ -299,20 +301,20 @@
 <div class="tab-bar" id="waiter-tabs" style="display:none">
   <button class="tab-btn active" onclick="goTab('tables')" id="tab-tables">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-    Tables
+    <span class="tab-label">Tables</span>
   </button>
   <button class="tab-btn" onclick="goTab('order')" id="tab-order">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-    Order
+    <span class="tab-label">Order</span>
     <span class="tab-badge" id="order-badge" style="display:none">0</span>
   </button>
   <button class="tab-btn" onclick="goTab('menu')" id="tab-menu">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Add Items
+    <span class="tab-label">Add Items</span>
   </button>
   <button class="tab-btn" onclick="goTab('ready')" id="tab-ready">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-    Ready
+    <span class="tab-label">Ready</span>
     <span class="tab-badge" id="ready-badge" style="display:none">0</span>
   </button>
 </div>
@@ -321,7 +323,7 @@
 <div class="modal-overlay hidden" id="checkout-overlay" onclick="handleOverlayClick(event)">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <button class="modal-close" onclick="closeCheckoutModal()">✕</button>
-    <div class="modal-title">🧾 Checkout — <span id="checkout-table-name"></span></div>
+    <div class="modal-title" id="checkout-modal-title">🧾 Checkout — <span id="checkout-table-name"></span></div>
     <div class="bill-items" id="checkout-bill-items"></div>
     <div id="checkout-totals"></div>
     <div class="pay-methods" id="checkout-pay-methods">
@@ -337,11 +339,11 @@
 <div class="modal-overlay hidden" id="split-overlay" onclick="if(event.target===this)closeSplitModal()">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <button class="modal-close" onclick="closeSplitModal()">✕</button>
-    <div class="modal-title">✂️ Split Bill</div>
+    <div class="modal-title" id="split-modal-title">✂️ Split Bill</div>
     <div id="split-items-list" style="max-height:200px;overflow-y:auto;margin-bottom:10px"></div>
     <div id="split-subtotal" class="bill-line total" style="margin-bottom:12px"></div>
     <div class="card" style="padding:14px;margin-bottom:12px">
-      <div class="card-title" style="margin-bottom:0">Equal split — how many people?</div>
+      <div class="card-title" id="split-equal-label" style="margin-bottom:0">Equal split — how many people?</div>
       <div class="split-row">
         <button class="btn secondary inline sm" onclick="adjustSplit(-1)">−</button>
         <span id="split-count-val" class="split-val">2</span>
@@ -350,41 +352,22 @@
       <div id="split-per-person" class="split-per"></div>
     </div>
     <div style="margin-bottom:12px">
-      <div class="card-title" style="margin-bottom:6px">Discount (optional)</div>
+      <div class="card-title" id="split-discount-label" style="margin-bottom:6px">Discount (optional)</div>
       <div class="discount-chips" id="split-discount-chips"></div>
     </div>
-    <button class="btn secondary" onclick="closeSplitModal()">Close</button>
+    <button class="btn secondary" id="split-close-btn" onclick="closeSplitModal()">Close</button>
   </div>
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════════
-//  TUNNEL BYPASS — skip localtunnel reminder page
+//  INIT
 // ══════════════════════════════════════════════════════════════════════
-// Override fetch to add bypass-tunnel-reminder header to all same-origin requests
-const _origFetch = window.fetch
-window.fetch = function(input, init) {
-  try {
-    const url = typeof input === 'string' ? new URL(input, location.origin) : new URL(input.url)
-    if (url.origin === location.origin) {
-      init = init || {}
-      init.headers = new Headers(init.headers || {})
-      init.headers.set('bypass-tunnel-reminder', 'true')
-    }
-  } catch {}
-  return _origFetch.call(this, input, init)
-}
-
 // Detect tunnel base path: /t/{accessKey} prefix when served via feast tunnel
 const API_BASE = (() => {
   const m = location.pathname.match(/^(\/t\/[a-f0-9]{16})/)
   return m ? m[1] : ''
 })()
-
-// Register service worker so future page navigations also bypass the reminder
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register(API_BASE + '/sw.js').catch(() => {})
-}
 
 // ══════════════════════════════════════════════════════════════════════
 //  STATE
@@ -420,10 +403,327 @@ let splitDiscount = null
 let pollInterval = null
 let _refreshDebounce = null
 let _kitchenRefreshDebounce = null
+let currentLang = 'en'
+
+// ══════════════════════════════════════════════════════════════════════
+//  I18N — Translation system
+// ═════════════════════════════════════════════════════════════════════���
+const translations = {
+  en: {
+    // Role selection
+    chooseRole: 'Choose your role',
+    connectedToDesk: 'Connected to feast. Desk',
+    waiter: 'Waiter',
+    kitchen: 'Kitchen',
+    takeOrders: 'Take & view orders',
+    manageCooking: 'Manage cooking',
+    // Header
+    roleBadgeWaiter: '🛎 Waiter',
+    roleBadgeKitchen: '👨‍🍳 Kitchen',
+    selectRole: 'Select Role',
+    // Connection
+    connLost: '⚠️ Connection to server lost — data may be stale',
+    // Waiter tabs
+    tabTables: 'Tables',
+    tabOrder: 'Order',
+    tabAddItems: 'Add Items',
+    tabReady: 'Ready',
+    // Tables
+    floor: 'Floor',
+    tables: 'Tables',
+    noFloors: 'No floors',
+    noTables: 'No tables on this floor',
+    free: 'Free',
+    active: '🍽 Active',
+    bill: '🧾 Bill',
+    // Order
+    selectTableFirst: 'Select a table first',
+    currentOrder: 'Current Order',
+    autoSaved: '✓ Auto-saved',
+    total: 'Total',
+    noItemsYet: 'No items yet — tap Add More below',
+    checkout: 'Checkout',
+    noDiscount: 'No discount',
+    cash: 'Cash',
+    card: 'Card',
+    other: 'Other',
+    buildBillPay: '🧾 Build Bill & Pay',
+    splitBill: '✂️ Split Bill',
+    addMore: '➕ Add More',
+    done: '✓ Done',
+    // Menu
+    selectTableMenu: 'Select a table first (Tables tab)',
+    addingTo: 'Adding to:',
+    table: 'Table',
+    soldOut: 'Sold out',
+    viewOrder: 'View Order →',
+    // Ready
+    mealsReady: 'Meals marked ready by kitchen',
+    noReadyNotif: 'No ready notifications',
+    dismiss: 'Dismiss',
+    tableReady: 'Table {{name}} is ready!',
+    tablesReady: '{{count}} tables ready!',
+    // Kitchen
+    connecting: 'Connecting…',
+    connected: 'Connected',
+    reconnecting: 'Reconnecting…',
+    newOrdersAuto: 'New orders appear automatically.',
+    noOpenOrders: 'No open orders right now',
+    ready: '✅ Ready',
+    markingReady: '✅ Marking ready…',
+    undo: '↩ Undo',
+    orderReady: 'Order Ready',
+    // Kitchen new items
+    newItemsAdded: 'New items added!',
+    noted: '✓ Noted',
+    new: 'NEW',
+    // Checkout modal
+    checkoutTitle: '🧾 Checkout',
+    subtotal: 'Subtotal',
+    discount: 'Discount',
+    confirmPayment: '✅ Confirm Payment',
+    processing: 'Processing…',
+    // Split modal
+    splitBillTitle: '✂️ Split Bill',
+    equalSplit: 'Equal split ��� how many people?',
+    discountOptional: 'Discount (optional)',
+    close: 'Close',
+    perPerson: 'per person',
+    // Notifications
+    noItemsToSplit: 'No items to split',
+    noOpenOrder: 'No open order',
+    couldNotBuild: 'Could not build bill',
+    checkoutFailed: 'Checkout failed',
+    failedToAdd: 'Failed to add item',
+    selectTableAdd: 'Select a table first',
+    failedToUpdate: 'Failed to update',
+    failedToRemove: 'Failed to remove',
+    paymentDone: '✅ Payment',
+    orderPaid: '💰 Order paid',
+    items: 'items',
+    item: 'item',
+    freeItem: 'Free'
+  },
+  tr: {
+    // Role selection
+    chooseRole: 'Rolünüzü seçin',
+    connectedToDesk: 'feast. Desk\'e bağlandı',
+    waiter: 'Garson',
+    kitchen: 'Mutfak',
+    takeOrders: 'Sipariş al ve görüntüle',
+    manageCooking: 'Yemek hazırlığını yönet',
+    // Header
+    roleBadgeWaiter: '🛎 Garson',
+    roleBadgeKitchen: '👨‍🍳 Mutfak',
+    selectRole: 'Rol Seçin',
+    // Connection
+    connLost: '⚠️ Sunucu bağlantısı kesildi — veriler güncel olmayabilir',
+    // Waiter tabs
+    tabTables: 'Masalar',
+    tabOrder: 'Sipariş',
+    tabAddItems: 'Ürün Ekle',
+    tabReady: 'Hazır',
+    // Tables
+    floor: 'Kat',
+    tables: 'Masalar',
+    noFloors: 'Kat yok',
+    noTables: 'Bu katta masa yok',
+    free: 'Boş',
+    active: '🍽 Aktif',
+    bill: '🧾 Hesap',
+    // Order
+    selectTableFirst: 'Önce bir masa seçin',
+    currentOrder: 'Mevcut Sipariş',
+    autoSaved: '✓ Otomatik kaydedildi',
+    total: 'Toplam',
+    noItemsYet: 'Henüz ürün yok — aşağıdan Ürün Ekle\'ye dokunun',
+    checkout: 'Ödeme',
+    noDiscount: 'İndirim yok',
+    cash: 'Nakit',
+    card: 'Kart',
+    other: 'Diğer',
+    buildBillPay: '🧾 Hesap Oluştur ve Öde',
+    splitBill: '✂️ Hesabı Böl',
+    addMore: '➕ Ürün Ekle',
+    done: '✓ Tamam',
+    // Menu
+    selectTableMenu: 'Önce bir masa seçin (Masalar sekmesi)',
+    addingTo: 'Ekleniyor:',
+    table: 'Masa',
+    soldOut: 'Tükendi',
+    viewOrder: 'Siparişi Gör →',
+    // Ready
+    mealsReady: 'Mutfaktan hazır işaretlenen yemekler',
+    noReadyNotif: 'Hazır bildirimi yok',
+    dismiss: 'Kapat',
+    tableReady: 'Masa {{name}} hazır!',
+    tablesReady: '{{count}} masa hazır!',
+    // Kitchen
+    connecting: 'Bağlanıyor…',
+    connected: 'Bağlandı',
+    reconnecting: 'Yeniden bağlanıyor…',
+    newOrdersAuto: 'Yeni siparişler otomatik görünür.',
+    noOpenOrders: 'Şu anda açık sipariş yok',
+    ready: '✅ Hazır',
+    markingReady: '✅ Hazır olarak işaretleniyor…',
+    undo: '↩ Geri Al',
+    orderReady: 'Sipariş Hazır',
+    // Kitchen new items
+    newItemsAdded: 'Yeni ürünler eklendi!',
+    noted: '✓ Görüldü',
+    new: 'YENİ',
+    // Checkout modal
+    checkoutTitle: '🧾 Ödeme',
+    subtotal: 'Ara Toplam',
+    discount: 'İndirim',
+    confirmPayment: '✅ Ödemeyi Onayla',
+    processing: 'İşleniyor…',
+    // Split modal
+    splitBillTitle: '✂️ Hesabı Böl',
+    equalSplit: 'Eşit bölme — kaç kişi?',
+    discountOptional: 'İndirim (isteğe bağlı)',
+    close: 'Kapat',
+    perPerson: 'kişi başına',
+    // Notifications
+    noItemsToSplit: 'Bölünecek ürün yok',
+    noOpenOrder: 'Açık sipariş yok',
+    couldNotBuild: 'Hesap oluşturulamadı',
+    checkoutFailed: 'Ödeme başarısız',
+    failedToAdd: 'Ürün eklenemedi',
+    selectTableAdd: 'Önce bir masa seçin',
+    failedToUpdate: 'Güncellenemedi',
+    failedToRemove: 'Silinemedi',
+    paymentDone: '✅ Ödeme',
+    orderPaid: '💰 Sipariş ödendi',
+    items: 'ürün',
+    item: 'ürün',
+    freeItem: 'Ücretsiz'
+  }
+}
+
+function T(key, params) {
+  const dict = translations[currentLang] || translations.en
+  let str = dict[key] || translations.en[key] || key
+  if (params) {
+    Object.keys(params).forEach(k => {
+      str = str.replace('{{' + k + '}}', params[k])
+    })
+  }
+  return str
+}
+
+function applyStaticTranslations() {
+  // Role selection page
+  const selectH2 = document.querySelector('#page-select h2')
+  if (selectH2) selectH2.textContent = T('chooseRole')
+  const selectP = document.querySelector('#page-select p')
+  if (selectP) selectP.textContent = T('connectedToDesk')
+  const roleCards = document.querySelectorAll('.role-card')
+  if (roleCards[0]) {
+    roleCards[0].querySelector('.role-name').textContent = T('waiter')
+    roleCards[0].querySelector('.role-desc').textContent = T('takeOrders')
+  }
+  if (roleCards[1]) {
+    roleCards[1].querySelector('.role-name').textContent = T('kitchen')
+    roleCards[1].querySelector('.role-desc').textContent = T('manageCooking')
+  }
+  // Role badge
+  document.getElementById('role-badge').textContent = T('selectRole')
+  // Connection error banner
+  document.getElementById('conn-error-banner').textContent = T('connLost')
+  // Waiter tab labels
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const label = btn.querySelector('.tab-label')
+    if (!label) return
+    const id = btn.id
+    if (id === 'tab-tables') label.textContent = T('tabTables')
+    else if (id === 'tab-order') label.textContent = T('tabOrder')
+    else if (id === 'tab-menu') label.textContent = T('tabAddItems')
+    else if (id === 'tab-ready') label.textContent = T('tabReady')
+  })
+  // Tables page card titles
+  const cardTitles = document.querySelectorAll('#page-tables .card-title')
+  if (cardTitles[0]) cardTitles[0].textContent = T('floor')
+  if (cardTitles[1]) cardTitles[1].textContent = T('tables')
+  // Order page: select table msg
+  const noTableP = document.querySelector('#no-table-msg p')
+  if (noTableP) noTableP.textContent = T('selectTableFirst')
+  // Menu page: select table msg
+  const noTableMenuP = document.querySelector('#no-table-menu-msg p')
+  if (noTableMenuP) noTableMenuP.textContent = T('selectTableMenu')
+  // Ready page title
+  const readyTitle = document.querySelector('#page-ready .card-title')
+  if (readyTitle) readyTitle.textContent = T('mealsReady')
+  const readyEmptyP = document.querySelector('#ready-empty p')
+  if (readyEmptyP) readyEmptyP.textContent = T('noReadyNotif')
+  // Kitchen page
+  const kitchenHint = document.querySelector('#page-kitchen .card span[style]')
+  if (kitchenHint) kitchenHint.textContent = T('newOrdersAuto')
+  const kitchenEmptyP = document.querySelector('#kitchen-empty p')
+  if (kitchenEmptyP) kitchenEmptyP.textContent = T('noOpenOrders')
+  // Checkout modal
+  const checkoutClose = document.querySelector('#split-overlay .modal-title')
+  if (checkoutClose) checkoutClose.textContent = T('splitBillTitle')
+  // Payment methods in order section
+  const payCash = document.getElementById('pay-cash')
+  if (payCash) payCash.textContent = T('cash')
+  const payCard = document.getElementById('pay-card')
+  if (payCard) payCard.textContent = T('card')
+  const payOther = document.getElementById('pay-other')
+  if (payOther) payOther.textContent = T('other')
+  // Checkout modal payment methods
+  const cpayCash = document.getElementById('cpay-cash')
+  if (cpayCash) cpayCash.textContent = T('cash')
+  const cpayCard = document.getElementById('cpay-card')
+  if (cpayCard) cpayCard.textContent = T('card')
+  const cpayOther = document.getElementById('cpay-other')
+  if (cpayOther) cpayOther.textContent = T('other')
+  // Confirm pay button
+  const confirmBtn = document.getElementById('confirm-pay-btn')
+  if (confirmBtn) confirmBtn.textContent = T('confirmPayment')
+  // Order section
+  const autoSaved = document.getElementById('order-auto-saved')
+  if (autoSaved) autoSaved.textContent = T('autoSaved')
+  const orderTotalLabel = document.getElementById('order-total-label')
+  if (orderTotalLabel) orderTotalLabel.textContent = T('total')
+  const checkoutLabel = document.getElementById('checkout-label')
+  if (checkoutLabel) checkoutLabel.textContent = T('checkout')
+  const buildBillBtn = document.getElementById('build-bill-btn')
+  if (buildBillBtn) buildBillBtn.innerHTML = T('buildBillPay')
+  const splitBillBtn = document.getElementById('split-bill-btn')
+  if (splitBillBtn) splitBillBtn.innerHTML = T('splitBill')
+  const addMoreBtn = document.getElementById('add-more-btn')
+  if (addMoreBtn) addMoreBtn.innerHTML = T('addMore')
+  const doneBtn = document.getElementById('done-btn')
+  if (doneBtn) doneBtn.textContent = T('done')
+  // Menu order bar
+  const menuBarAction = document.getElementById('menu-order-bar-action')
+  if (menuBarAction) menuBarAction.textContent = T('viewOrder')
+  // Checkout modal title prefix (dynamic part set separately)
+  // Split modal
+  const splitTitle = document.getElementById('split-modal-title')
+  if (splitTitle) splitTitle.textContent = T('splitBillTitle')
+  const splitEqualLabel = document.getElementById('split-equal-label')
+  if (splitEqualLabel) splitEqualLabel.textContent = T('equalSplit')
+  const splitDiscLabel = document.getElementById('split-discount-label')
+  if (splitDiscLabel) splitDiscLabel.textContent = T('discountOptional')
+  const splitCloseBtn = document.getElementById('split-close-btn')
+  if (splitCloseBtn) splitCloseBtn.textContent = T('close')
+  // Kitchen
+  const kitchenHintEl = document.getElementById('kitchen-hint')
+  if (kitchenHintEl) kitchenHintEl.textContent = T('newOrdersAuto')
+}
 
 // ══════════════════════════════════════════════════════════════════════
 //  BOOT
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════��══════════
+// Fetch language before rendering the role selection page
+fetch(API_BASE + '/api/settings').then(r => r.json()).then(s => {
+  if (s.language && translations[s.language]) {
+    currentLang = s.language
+  }
+  applyStaticTranslations()
+}).catch(() => { applyStaticTranslations() })
 document.getElementById('page-select').classList.add('active')
 
 // ══════════════════════════════════════════════════════════════════════
@@ -432,7 +732,7 @@ document.getElementById('page-select').classList.add('active')
 function selectRole(r) {
   role = r
   document.getElementById('page-select').classList.remove('active')
-  document.getElementById('role-badge').textContent = r === 'waiter' ? '🛎 Waiter' : '👨‍🍳 Kitchen'
+  document.getElementById('role-badge').textContent = r === 'waiter' ? T('roleBadgeWaiter') : T('roleBadgeKitchen')
   if (r === 'waiter') {
     document.getElementById('waiter-tabs').style.display = 'flex'
     goTab('tables')
@@ -492,7 +792,7 @@ function updateKitchenStatus(online) {
   const el = document.getElementById('kitchen-status')
   if (!el) return
   el.className = online ? 'status-pill online' : 'status-pill offline'
-  el.innerHTML = `<span class="status-dot"></span>${online ? 'Connected' : 'Reconnecting…'}`
+  el.innerHTML = `<span class="status-dot"></span>${online ? T('connected') : T('reconnecting')}`
 }
 
 function showConnError() {
@@ -538,6 +838,10 @@ async function initWaiter() {
   floors = floorsData
   discounts = discountData
   Object.assign(kitchenSettings, settingsData)
+  if (settingsData.language && translations[settingsData.language]) {
+    currentLang = settingsData.language
+    applyStaticTranslations()
+  }
   renderFloorTabs()
   if (floors.length) selectFloor(floors[0].id)
   connectWS()
@@ -577,7 +881,7 @@ async function refreshAll() {
 // ══════════════════════════════════════════════════════════════════════
 function renderFloorTabs() {
   const el = document.getElementById('floor-tabs')
-  if (!floors.length) { el.innerHTML = '<span style="color:#78716C;font-size:13px">No floors</span>'; return }
+  if (!floors.length) { el.innerHTML = '<span style="color:#78716C;font-size:13px">' + T('noFloors') + '</span>'; return }
   el.innerHTML = floors.map(f =>
     `<button class="floor-tab${activeFloorId === f.id ? ' active' : ''}" onclick="selectFloor(${f.id})">${f.name}</button>`
   ).join('')
@@ -593,12 +897,12 @@ function renderTableGrid() {
   const floor = floors.find(f => f.id === activeFloorId)
   const grid = document.getElementById('table-grid')
   if (!floor || !floor.tables || !floor.tables.length) {
-    grid.innerHTML = '<p style="color:#78716C;font-size:13px">No tables on this floor</p>'
+    grid.innerHTML = '<p style="color:#78716C;font-size:13px">' + T('noTables') + '</p>'
     return
   }
   grid.innerHTML = floor.tables.map(t => {
     const cls = t.status === 'checkout_pending' ? 'checkout' : t.status === 'occupied' ? 'occupied' : ''
-    const sub = t.status === 'checkout_pending' ? '🧾 Bill' : t.status === 'occupied' ? '🍽 Active' : 'Free'
+    const sub = t.status === 'checkout_pending' ? T('bill') : t.status === 'occupied' ? T('active') : T('free')
     const sel = currentTableId == t.id ? ' selected' : ''
     return `<div class="table-btn ${cls}${sel}" onclick="selectTable(${t.id},'${escStr(t.name)}')">
       <span>${t.name}</span>
@@ -659,7 +963,7 @@ function updateMenuOrderBar() {
   const total = currentOrderItems.reduce((s, i) => s + (!i.is_free ? i.unit_price * i.quantity : 0), 0)
   if (count > 0 && currentTab === 'menu') {
     bar.style.display = 'flex'
-    text.textContent = `${count} item${count !== 1 ? 's' : ''} · ${kitchenSettings.currency_symbol}${total.toFixed(2)}`
+    text.textContent = `${count} ${count !== 1 ? T('items') : T('item')} · ${kitchenSettings.currency_symbol}${total.toFixed(2)}`
   } else {
     bar.style.display = 'none'
   }
@@ -685,7 +989,7 @@ function refreshOrderTab() {
   if (!currentTableId) { noTable.style.display = ''; content.style.display = 'none'; return }
   noTable.style.display = 'none'
   content.style.display = ''
-  document.getElementById('order-card-title').textContent = `TABLE ${currentTableName}`
+  document.getElementById('order-card-title').textContent = `${T('table').toUpperCase()} ${currentTableName}`
 }
 
 function renderOrderItems(items) {
@@ -695,7 +999,7 @@ function renderOrderItems(items) {
   const checkoutSection = document.getElementById('checkout-section')
 
   if (!items.length) {
-    el.innerHTML = '<p style="color:#78716C;font-size:13px;padding:4px 0">No items yet — tap Add More below</p>'
+    el.innerHTML = '<p style="color:#78716C;font-size:13px;padding:4px 0">' + T('noItemsYet') + '</p>'
     totRow.style.display = 'none'
     checkoutSection.style.display = 'none'
     return
@@ -712,7 +1016,7 @@ function renderOrderItems(items) {
     return `<div class="item-row" style="${i.is_paid_partial ? 'opacity:0.5' : ''}">
       <span class="item-name" style="${i.is_free ? 'text-decoration:line-through;color:#9CA3AF' : ''}">${i.menu_item_name}</span>
       <div style="display:flex;align-items:center;gap:5px">
-        <span class="item-price">${i.is_free ? 'Free' : kitchenSettings.currency_symbol + (i.unit_price * i.quantity).toFixed(2)}</span>
+        <span class="item-price">${i.is_free ? T('freeItem') : kitchenSettings.currency_symbol + (i.unit_price * i.quantity).toFixed(2)}</span>
         ${controls}
       </div>
     </div>`
@@ -729,7 +1033,7 @@ function renderDiscountChips() {
   const el = document.getElementById('order-discount-chips')
   if (!discounts.length) { el.innerHTML = ''; return }
   el.innerHTML =
-    `<span class="disc-chip${!selectedDiscount ? ' active' : ''}" onclick="selectDiscount(null)">No discount</span>` +
+    `<span class="disc-chip${!selectedDiscount ? ' active' : ''}" onclick="selectDiscount(null)">${T('noDiscount')}</span>` +
     discounts.map(d =>
       `<span class="disc-chip${selectedDiscount && selectedDiscount.id === d.id ? ' active' : ''}" onclick="selectDiscount(${JSON.stringify(d).replace(/"/g, '&quot;')})">${d.label}</span>`
     ).join('')
@@ -746,7 +1050,7 @@ function selectPayMethod(m) {
 //  WAITER — ITEM MUTATIONS (instant save via REST)
 // ══════════════════════════════════════════════════════════════════════
 async function addItem(id, name, price) {
-  if (!currentTableId) { showNotif('Select a table first', 'error'); return }
+  if (!currentTableId) { showNotif(T('selectTableAdd'), 'error'); return }
   const res = await fetch(`${API_BASE}/api/orders/${currentTableId}/items`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -761,7 +1065,7 @@ async function addItem(id, name, price) {
     renderFloorTabs()
     renderTableGrid()
   } else {
-    showNotif('Failed to add item', 'error')
+    showNotif(T('failedToAdd'), 'error')
   }
 }
 
@@ -776,7 +1080,7 @@ async function changeItemQty(itemId, delta) {
     body: JSON.stringify({ quantity: newQty })
   })
   if (res.ok) await loadTableOrder()
-  else showNotif('Failed to update', 'error')
+  else showNotif(T('failedToUpdate'), 'error')
 }
 
 async function removeItem(itemId) {
@@ -788,7 +1092,7 @@ async function removeItem(itemId) {
     renderFloorTabs()
     renderTableGrid()
   } else {
-    showNotif('Failed to remove', 'error')
+    showNotif(T('failedToRemove'), 'error')
   }
 }
 
@@ -801,7 +1105,7 @@ function refreshMenuTab() {
   if (!currentTableId) { noMsg.style.display = ''; cont.style.display = 'none'; return }
   noMsg.style.display = 'none'
   cont.style.display = ''
-  document.getElementById('menu-table-label').textContent = `Table ${currentTableName}`
+  document.getElementById('menu-adding-to').innerHTML = `${T('addingTo')} <span id="menu-table-label" style="color:#FF3131;font-weight:700">${T('table')} ${currentTableName}</span>`
   renderCatTabs()
 }
 
@@ -822,7 +1126,7 @@ function renderMenuItems(items) {
       .filter(oi => oi.menu_item_name === item.name)
       .reduce((s, oi) => s + oi.quantity, 0)
     return `<div class="menu-item${item.sold_out ? ' sold-out' : ''}" onclick="addItem('${escStr(String(item.id ?? item.name))}','${escStr(item.name)}',${item.price})">
-      <span class="menu-item-name">${item.name}${item.sold_out ? ' <span style="font-size:11px;color:#9CA3AF">(Sold out)</span>' : ''}</span>
+      <span class="menu-item-name">${item.name}${item.sold_out ? ' <span style="font-size:11px;color:#9CA3AF">(' + T('soldOut') + ')</span>' : ''}</span>
       <div style="display:flex;align-items:center;gap:8px">
         ${qty > 0 ? `<span class="qty-badge">${qty}</span>` : ''}
         <span class="menu-item-price">${kitchenSettings.currency_symbol}${parseFloat(item.price).toFixed(2)}</span>
@@ -841,7 +1145,7 @@ function addReadyItem(tableId, tableName) {
   if (currentTab === 'ready') renderReadyList()
   // Show persistent banner — stays until user dismisses or visits Ready tab
   const count = readyList.length
-  showReadyBanner(count === 1 ? `✅ ${tableName} is ready!` : `✅ ${count} tables ready!`)
+  showReadyBanner(count === 1 ? `✅ ${T('tableReady', { name: tableName })}` : `✅ ${T('tablesReady', { count })}`)
 }
 
 function showReadyBanner(msg) {
@@ -873,10 +1177,10 @@ function renderReadyList() {
   el.innerHTML = readyList.map(r =>
     `<div class="ready-item">
       <div>
-        <div class="ready-item-text">🍽 Table ${r.tableName} is ready!</div>
+        <div class="ready-item-text">🍽 ${T('tableReady', { name: r.tableName })}</div>
         <div class="ready-item-time">${r.time}</div>
       </div>
-      <button class="ready-dismiss" onclick="dismissReady(${r.id})">Dismiss</button>
+      <button class="ready-dismiss" onclick="dismissReady(${r.id})">${T('dismiss')}</button>
     </div>`
   ).join('')
 }
@@ -886,22 +1190,22 @@ function dismissReady(id) {
   updateReadyBadge()
   renderReadyList()
   if (readyList.length === 0) dismissReadyBanner()
-  else showReadyBanner(readyList.length === 1 ? `✅ ${readyList[0].tableName} is ready!` : `✅ ${readyList.length} tables ready!`)
+  else showReadyBanner(readyList.length === 1 ? `✅ ${T('tableReady', { name: readyList[0].tableName })}` : `✅ ${T('tablesReady', { count: readyList.length })}`)
 }
 
 // ══════════════════════════════════════════════════════════════════════
 //  WAITER — CHECKOUT MODAL
 // ══════════════════════════════════════════════════════════════════════
 async function openCheckoutModal() {
-  if (!currentOrderId) { showNotif('No open order', 'error'); return }
+  if (!currentOrderId) { showNotif(T('noOpenOrder'), 'error'); return }
   const pct = selectedDiscount ? selectedDiscount.pct : null
   const url = `${API_BASE}/api/checkout/bill/${currentOrderId}${pct ? `?pct=${pct}` : ''}`
   const bill = await fetch(url).then(r => r.json()).catch(() => null)
-  if (!bill || bill.error) { showNotif('Could not build bill', 'error'); return }
+  if (!bill || bill.error) { showNotif(T('couldNotBuild'), 'error'); return }
   currentBill = bill
   checkoutPayMethod = selectedPayMethod
 
-  document.getElementById('checkout-table-name').textContent = currentTableName
+  document.getElementById('checkout-modal-title').innerHTML = `${T('checkoutTitle')} — <span id="checkout-table-name">${currentTableName}</span>`
   document.getElementById('checkout-bill-items').innerHTML = bill.items.map(i =>
     `<div class="bill-item">
       <span style="${i.is_free ? 'text-decoration:line-through;color:#9CA3AF' : ''}">${i.menu_item_name} ×${i.quantity}</span>
@@ -910,11 +1214,11 @@ async function openCheckoutModal() {
   ).join('')
 
   document.getElementById('checkout-totals').innerHTML =
-    `<div class="bill-line"><span>Subtotal</span><span>${kitchenSettings.currency_symbol}${bill.subtotal.toFixed(2)}</span></div>` +
+    `<div class="bill-line"><span>${T('subtotal')}</span><span>${kitchenSettings.currency_symbol}${bill.subtotal.toFixed(2)}</span></div>` +
     (bill.discount_total > 0
-      ? `<div class="bill-line discount"><span>Discount${pct ? ` (${pct}%)` : ''}</span><span>-${kitchenSettings.currency_symbol}${bill.discount_total.toFixed(2)}</span></div>`
+      ? `<div class="bill-line discount"><span>${T('discount')}${pct ? ` (${pct}%)` : ''}</span><span>-${kitchenSettings.currency_symbol}${bill.discount_total.toFixed(2)}</span></div>`
       : '') +
-    `<div class="bill-line total"><span>Total</span><span style="color:#FF3131">${kitchenSettings.currency_symbol}${bill.grand_total.toFixed(2)}</span></div>`
+    `<div class="bill-line total"><span>${T('total')}</span><span style="color:#FF3131">${kitchenSettings.currency_symbol}${bill.grand_total.toFixed(2)}</span></div>`
 
   ;['cash','card','other'].forEach(m => document.getElementById(`cpay-${m}`).classList.toggle('selected', m === checkoutPayMethod))
   document.getElementById('checkout-overlay').classList.remove('hidden')
@@ -937,7 +1241,7 @@ function selectCheckoutPay(m) {
 async function confirmCheckout() {
   if (!currentOrderId || !currentBill) return
   const btn = document.getElementById('confirm-pay-btn')
-  btn.textContent = 'Processing…'
+  btn.textContent = T('processing')
   btn.disabled = true
   const pct = selectedDiscount ? selectedDiscount.pct : null
   const res = await fetch(API_BASE + '/api/checkout/finalize', {
@@ -946,10 +1250,10 @@ async function confirmCheckout() {
     body: JSON.stringify({ orderId: currentOrderId, paymentMethod: checkoutPayMethod, discountPct: pct })
   })
   const data = await res.json().catch(() => ({}))
-  btn.textContent = '✅ Confirm Payment'
+  btn.textContent = T('confirmPayment')
   btn.disabled = false
   if (data.success) {
-    showNotif(`✅ Payment — ${kitchenSettings.currency_symbol}${data.checkout.grand_total.toFixed(2)}`, 'ready')
+    showNotif(`${T('paymentDone')} — ${kitchenSettings.currency_symbol}${data.checkout.grand_total.toFixed(2)}`, 'ready')
     closeCheckoutModal()
     // Reset state and go back to tables
     currentOrderId = null
@@ -960,7 +1264,7 @@ async function confirmCheckout() {
     await refreshAll()
     goTab('tables')
   } else {
-    showNotif(data.error || 'Checkout failed', 'error')
+    showNotif(data.error || T('checkoutFailed'), 'error')
   }
 }
 
@@ -968,7 +1272,7 @@ async function confirmCheckout() {
 //  WAITER — SPLIT BILL MODAL
 // ══════════════════════════════════════════════════════════════════════
 function openSplitModal() {
-  if (!currentOrderItems.length) { showNotif('No items to split', 'error'); return }
+  if (!currentOrderItems.length) { showNotif(T('noItemsToSplit'), 'error'); return }
   splitCount = 2
   splitDiscount = null
   renderSplitItems()
@@ -992,14 +1296,14 @@ function renderSplitItems() {
   document.getElementById('split-items-list').innerHTML = currentOrderItems.map(i =>
     `<div class="split-item">
       <span class="split-item-name">${i.menu_item_name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}</span>
-      <span class="split-item-price">${i.is_free ? 'Free' : kitchenSettings.currency_symbol + (i.unit_price * i.quantity).toFixed(2)}</span>
+      <span class="split-item-price">${i.is_free ? T('freeItem') : kitchenSettings.currency_symbol + (i.unit_price * i.quantity).toFixed(2)}</span>
     </div>`
   ).join('')
 }
 
 function renderSplitDiscountChips() {
   const el = document.getElementById('split-discount-chips')
-  el.innerHTML = `<span class="disc-chip${!splitDiscount ? ' active' : ''}" onclick="selectSplitDiscount(null)">No discount</span>` +
+  el.innerHTML = `<span class="disc-chip${!splitDiscount ? ' active' : ''}" onclick="selectSplitDiscount(null)">${T('noDiscount')}</span>` +
     discounts.map(d =>
       `<span class="disc-chip${splitDiscount && splitDiscount.id === d.id ? ' active' : ''}" onclick="selectSplitDiscount(${JSON.stringify(d).replace(/"/g, '&quot;')})">${d.label}</span>`
     ).join('')
@@ -1015,12 +1319,12 @@ function updateSplitCalc() {
   const subEl = document.getElementById('split-subtotal')
   if (subEl) {
     subEl.innerHTML = pct > 0
-      ? `<span>Subtotal</span><span>${kitchenSettings.currency_symbol}${subtotal.toFixed(2)}</span>` +
+      ? `<span>${T('subtotal')}</span><span>${kitchenSettings.currency_symbol}${subtotal.toFixed(2)}</span>` +
         `&nbsp;<span style="color:#16A34A">−${pct}%</span>&nbsp;<span style="font-weight:700">${kitchenSettings.currency_symbol}${grand.toFixed(2)}</span>`
-      : `<span>Total</span><span>${kitchenSettings.currency_symbol}${grand.toFixed(2)}</span>`
+      : `<span>${T('total')}</span><span>${kitchenSettings.currency_symbol}${grand.toFixed(2)}</span>`
   }
   const perEl = document.getElementById('split-per-person')
-  if (perEl) perEl.textContent = `${kitchenSettings.currency_symbol}${perPerson.toFixed(2)} per person`
+  if (perEl) perEl.textContent = `${kitchenSettings.currency_symbol}${perPerson.toFixed(2)} ${T('perPerson')}`
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1033,8 +1337,8 @@ function handleWaiterMsg(msg) {
     scheduleRefresh()
   }
   if (msg.type === 'order:done') {
-    addReadyItem(msg.tableId, msg.tableName || `Table ${msg.tableId}`)
-    showNotif(`✅ Table ${msg.tableName || msg.tableId}: order ready!`, 'ready')
+    addReadyItem(msg.tableId, msg.tableName || `${T('table')} ${msg.tableId}`)
+    showNotif(`✅ ${T('table')} ${msg.tableName || msg.tableId}: ${T('orderReady')}!`, 'ready')
   }
 }
 
@@ -1044,6 +1348,10 @@ function handleWaiterMsg(msg) {
 async function initKitchen() {
   const settingsData = await fetch(API_BASE + '/api/settings').then(r => r.json()).catch(() => ({}))
   Object.assign(kitchenSettings, settingsData)
+  if (settingsData.language && translations[settingsData.language]) {
+    currentLang = settingsData.language
+    applyStaticTranslations()
+  }
   await refreshKitchenOrders()
   startKitchenTimer()
   connectWS()
@@ -1076,14 +1384,17 @@ async function refreshKitchenOrders() {
 
       if (!kitchenOrders.has(tid)) {
         // New order we haven't seen — initialise done from DB
+        const knownItemMap = new Map()
+        newItems.forEach(i => knownItemMap.set(i.id, i.quantity))
         kitchenOrders.set(tid, {
           tableId: tid,
-          tableName: o.table_name || `Table ${tid}`,
+          tableName: o.table_name || `${T('table')} ${tid}`,
           orderId: o.id,
           items: newItems,
           openedAt: o.opened_at || Date.now(),
           done: !!o.kitchen_done_at,
-          undoTimeout: null
+          undoTimeout: null,
+          knownItemMap // tracks id→quantity the kitchen has acknowledged
         })
       } else {
         const existing = kitchenOrders.get(tid)
@@ -1093,12 +1404,16 @@ async function refreshKitchenOrders() {
         const oldSig = existing.items.map(i => `${i.id}:${i.quantity}`).sort().join(',')
         const newSig = newItems.map(i => `${i.id}:${i.quantity}`).sort().join(',')
 
-        // Re-open if items changed after kitchen marked done
         if (existing.done && oldSig !== newSig) {
+          // Re-open: items changed after kitchen marked done → show NEW badges
+          // knownItemMap stays as-is (from when Done was clicked), so new items get badges
           existing.done = false
           existing.openedAt = Date.now()
-          // Clear kitchen-done in DB since new items arrived
           fetch(`${API_BASE}/api/orders/${existing.orderId}/kitchen-undo`, { method: 'PATCH' }).catch(() => {})
+        } else if (!existing.done && oldSig !== newSig) {
+          // Incremental additions to an active order → auto-acknowledge (no badges)
+          existing.knownItemMap = new Map()
+          newItems.forEach(i => existing.knownItemMap.set(i.id, i.quantity))
         }
 
         // Don't overwrite items during the 3s undo window
@@ -1155,7 +1470,7 @@ function renderKitchenOrders() {
       return `<div class="kitchen-card done">
         <div class="kitchen-header">
           <span class="kitchen-table">🪑 ${o.tableName}</span>
-          <span class="kitchen-time">✅ Ready</span>
+          <span class="kitchen-time">${T('ready')}</span>
         </div>
         ${o.items.map(i => `<div class="kitchen-item"><span>${i.menu_item_name}</span><span class="qty-badge">×${i.quantity}</span></div>`).join('')}
       </div>`
@@ -1166,11 +1481,11 @@ function renderKitchenOrders() {
       return `<div class="kitchen-card green">
         <div class="kitchen-header">
           <span class="kitchen-table">🪑 ${o.tableName}</span>
-          <span class="kitchen-time">✅ Marking ready…</span>
+          <span class="kitchen-time">${T('markingReady')}</span>
         </div>
         ${o.items.map(i => `<div class="kitchen-item"><span>${i.menu_item_name}</span><span class="qty-badge">×${i.quantity}</span></div>`).join('')}
         <div class="kitchen-actions">
-          <button class="btn secondary sm inline" onclick="undoOrderDone(${o.tableId})">↩ Undo</button>
+          <button class="btn secondary sm inline" onclick="undoOrderDone(${o.tableId})">${T('undo')}</button>
         </div>
       </div>`
     }
@@ -1184,6 +1499,13 @@ function renderKitchenOrders() {
       timerBadge = `<span class="timer-badge ${timer.cls}">${timer.label}</span>`
     }
 
+    // Determine which items are new/changed vs known
+    const known = o.knownItemMap || new Map()
+    const hasNewItems = o.items.some(i => {
+      const prev = known.get(i.id)
+      return prev === undefined || prev < i.quantity
+    })
+
     return `<div class="${cardCls}">
       <div class="kitchen-header">
         <span class="kitchen-table">🪑 ${o.tableName}</span>
@@ -1192,9 +1514,17 @@ function renderKitchenOrders() {
           <span class="kitchen-time">${new Date(o.openedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
         </div>
       </div>
-      ${o.items.map(i => `<div class="kitchen-item"><span>${i.menu_item_name}</span><span class="qty-badge">×${i.quantity}</span></div>`).join('')}
+      ${hasNewItems ? `<div class="new-items-banner"><span>🔔 ${T('newItemsAdded')}</span><button class="btn secondary sm inline" onclick="acknowledgeItems(${o.tableId})" style="padding:4px 10px;font-size:11px">${T('noted')}</button></div>` : ''}
+      ${o.items.map(i => {
+        const prev = known.get(i.id)
+        const isNew = prev === undefined
+        const qtyDelta = !isNew && prev < i.quantity ? i.quantity - prev : 0
+        const cls = isNew ? ' new' : (qtyDelta > 0 ? ' new' : '')
+        const label = isNew ? T('new') : (qtyDelta > 0 ? '+' + qtyDelta : '')
+        return '<div class="kitchen-item' + cls + '"><span>' + i.menu_item_name + (label ? ' <span style="font-size:11px;background:#FF3131;color:white;border-radius:999px;padding:1px 7px;margin-left:4px">' + label + '</span>' : '') + '</span><span class="qty-badge">×' + i.quantity + '</span></div>'
+      }).join('')}
       <div class="kitchen-actions">
-        <button class="btn success sm inline" onclick="markOrderDone(${o.tableId})">✅ ${approvalEnabled ? 'Order Ready' : 'Done'}</button>
+        <button class="btn success sm inline" onclick="markOrderDone(${o.tableId})">✅ ${approvalEnabled ? T('orderReady') : T('done')}</button>
       </div>
     </div>`
   }).join('')
@@ -1203,9 +1533,20 @@ function renderKitchenOrders() {
 // ══════════════════════════════════════════════════════════════════════
 //  KITCHEN — DONE / UNDO
 // ══════════════════════════════════════════════════════════════════════
+function acknowledgeItems(tableId) {
+  const order = kitchenOrders.get(tableId)
+  if (!order) return
+  order.knownItemMap = new Map()
+  order.items.forEach(i => order.knownItemMap.set(i.id, i.quantity))
+  renderKitchenOrders()
+}
+
 function markOrderDone(tableId) {
   const order = kitchenOrders.get(tableId)
   if (!order || order.done || order._pendingDone) return
+  // Acknowledge all items when marking done
+  order.knownItemMap = new Map()
+  order.items.forEach(i => order.knownItemMap.set(i.id, i.quantity))
 
   // Notify waiters via WS
   if (ws && ws.readyState === 1) {
@@ -1264,10 +1605,10 @@ function handleKitchenMsg(msg) {
   }
   if (msg.type === 'order:paid') {
     const paidOrder = kitchenOrders.get(msg.tableId)
-    const paidName = paidOrder ? paidOrder.tableName : (msg.tableName || `Table ${msg.tableId}`)
+    const paidName = paidOrder ? paidOrder.tableName : (msg.tableName || `${T('table')} ${msg.tableId}`)
     kitchenOrders.delete(msg.tableId)
     renderKitchenOrders()
-    showNotif(`💰 Order paid — ${paidName}`)
+    showNotif(`${T('orderPaid')} — ${paidName}`)
   }
 }
 

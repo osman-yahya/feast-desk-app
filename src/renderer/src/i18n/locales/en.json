@@ -27,7 +27,8 @@
     "month": "Month",
     "revenue": "Revenue",
     "date": "Date",
-    "avg": "Avg"
+    "avg": "Avg",
+    "custom": "Custom"
   },
 
   "connect": {
@@ -51,7 +52,11 @@
     "unlockFeatures": "Unlock more features on feast.tr",
     "editMenu": "Edit your menu on feast.tr",
     "connected": "Connected!",
-    "redirecting": "Redirecting to dashboard..."
+    "redirecting": "Redirecting to dashboard...",
+    "openKeypad": "Open on-screen keypad",
+    "uiModeTitle": "Display mode",
+    "uiModeTouch": "Touchscreen",
+    "uiModeCompact": "Compact"
   },
 
   "modules": {
@@ -220,7 +225,6 @@
     "listeningOn": "Listening on {{ip}}:{{port}}",
     "tunnelActive": "Tunnel active — {{url}}",
     "feastTunnel": "feast. Tunnel",
-    "freeTunnel": "Free Tunnel",
     "localNetwork": "Local Network",
     "waiters": "Waiters",
     "kitchen": "Kitchen",
@@ -233,17 +237,12 @@
     "fastest": "Fastest",
     "private": "Private",
     "sameWifiOnly": "Same Wi-Fi only",
-    "internetTunnel": "Internet Tunnel",
-    "freeTunnelDesc": "Creates a public URL via third-party tunnel. Works across different networks. URL changes on each restart.",
-    "anyNetwork": "Any network",
-    "temporaryUrl": "Temporary URL",
     "premiumTunnel": "Premium Tunnel",
     "feastTunnelDesc": "Dedicated tunnel through feast. servers. Stable permanent URL, fastest remote connection, auto-reconnect.",
     "permanentUrl": "Permanent URL",
     "autoReconnect": "Auto-reconnect",
     "recommendedWhen": "Recommended when:",
     "localRecommendation": "All staff devices (phones, tablets) are connected to the same Wi-Fi network as this computer. Best performance and full privacy.",
-    "tunnelRecommendation": "Your restaurant has multiple Wi-Fi networks, weak signal areas, or staff use mobile data. URL changes each time the server restarts.",
     "feastRecommendation": "You need a reliable, always-the-same URL for your staff. Works across any network with automatic reconnection if connection drops.",
     "serverPort": "Server Port",
     "portSubtitle": "Change the port the server listens on (requires restart)",
@@ -256,21 +255,25 @@
     "step3": "Visit the URL and select \"Kitchen\" to display incoming orders",
     "localWarning": "All devices must be on the same Wi-Fi network",
     "feastTunnelInfo": "Devices can be on any network — your feast. tunnel URL is permanent",
-    "freeTunnelInfo": "Devices can be on any network — the tunnel URL works everywhere",
-    "tunnelUrlTitle": "Tunnel URL",
     "feastTunnelUrlTitle": "feast. Tunnel URL",
     "shareUrl": "Share this URL with staff on any network",
     "permanentUrlInfo": "This URL is permanent and stays the same across restarts.",
-    "temporaryUrlInfo": "This URL is temporary and changes each time the server restarts.",
     "refreshStatus": "Refresh Status",
     "serverStarted": "Server started{{mode}} on port {{port}}",
     "serverStopped": "Server stopped",
-    "withFeastTunnel": " with feast tunnel",
-    "withTunnel": " with tunnel"
+    "withFeastTunnel": " with feast tunnel"
   },
 
   "settings": {
     "cacheMenu": "Cache & Menu",
+    "uiMode": "Display Mode",
+    "uiModeTitle": "Choose how the app looks",
+    "uiModeSub": "Touchscreen mode enlarges buttons, text and spacing. Compact mode is the classic dense layout.",
+    "uiModeTouch": "Touchscreen",
+    "uiModeTouchDesc": "Bigger buttons, ideal for touch displays",
+    "uiModeCompact": "Compact",
+    "uiModeCompactDesc": "Classic dense layout, best for mouse/keyboard",
+    "uiModeNote": "Analytics and the waiter/kitchen server UI are never resized.",
     "endOfDay": "End of Day",
     "discounts": "Discounts",
     "exportImport": "Export / Import",
@@ -282,6 +285,7 @@
     "starter": "Starter",
     "essential": "Essential",
     "professional": "Professional",
+    "business": "Business",
     "enterprise": "Enterprise",
     "allFeaturesUnlocked": "All features unlocked",
     "upgradeForMore": "Upgrade for more features",

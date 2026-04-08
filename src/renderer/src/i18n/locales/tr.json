@@ -27,7 +27,8 @@
     "month": "Ay",
     "revenue": "Gelir",
     "date": "Tarih",
-    "avg": "Ort"
+    "avg": "Ort",
+    "custom": "Özel"
   },
 
   "connect": {
@@ -51,7 +52,11 @@
     "unlockFeatures": "feast.tr'de daha fazla özellik açın",
     "editMenu": "Menünüzü feast.tr'de düzenleyin",
     "connected": "Bağlandı!",
-    "redirecting": "Panele yönlendiriliyor..."
+    "redirecting": "Panele yönlendiriliyor...",
+    "openKeypad": "Ekran klavyesini aç",
+    "uiModeTitle": "Görünüm modu",
+    "uiModeTouch": "Dokunmatik",
+    "uiModeCompact": "Kompakt"
   },
 
   "modules": {
@@ -220,7 +225,6 @@
     "listeningOn": "{{ip}}:{{port}} üzerinde dinleniyor",
     "tunnelActive": "Tünel aktif — {{url}}",
     "feastTunnel": "feast. Tünel",
-    "freeTunnel": "Ücretsiz Tünel",
     "localNetwork": "Yerel Ağ",
     "waiters": "Garsonlar",
     "kitchen": "Mutfak",
@@ -233,17 +237,12 @@
     "fastest": "En Hızlı",
     "private": "Gizli",
     "sameWifiOnly": "Yalnızca aynı Wi-Fi",
-    "internetTunnel": "İnternet Tüneli",
-    "freeTunnelDesc": "Üçüncü taraf tünel ile genel URL oluşturur. Farklı ağlarda çalışır. URL her yeniden başlatmada değişir.",
-    "anyNetwork": "Herhangi bir ağ",
-    "temporaryUrl": "Geçici URL",
     "premiumTunnel": "Premium Tünel",
     "feastTunnelDesc": "feast. sunucuları üzerinden özel tünel. Sabit kalıcı URL, en hızlı uzak bağlantı, otomatik yeniden bağlantı.",
     "permanentUrl": "Kalıcı URL",
     "autoReconnect": "Otomatik yeniden bağlantı",
     "recommendedWhen": "Şu durumlarda önerilir:",
     "localRecommendation": "Tüm personel cihazları (telefonlar, tabletler) bu bilgisayarla aynı Wi-Fi ağına bağlı. En iyi performans ve tam gizlilik.",
-    "tunnelRecommendation": "Restoranınızda birden fazla Wi-Fi ağı, zayıf sinyal alanları veya personel mobil veri kullanıyor. URL sunucu her yeniden başlatıldığında değişir.",
     "feastRecommendation": "Personeliniz için güvenilir, her zaman aynı kalan bir URL'ye ihtiyacınız var. Herhangi bir ağda çalışır ve bağlantı düşerse otomatik yeniden bağlanır.",
     "serverPort": "Sunucu Portu",
     "portSubtitle": "Sunucunun dinlediği portu değiştirin (yeniden başlatma gerektirir)",
@@ -256,21 +255,25 @@
     "step3": "Gelen siparişleri görüntülemek için URL'yi ziyaret edin ve \"Mutfak\" seçin",
     "localWarning": "Tüm cihazlar aynı Wi-Fi ağında olmalıdır",
     "feastTunnelInfo": "Cihazlar herhangi bir ağda olabilir — feast. tünel URL'niz kalıcıdır",
-    "freeTunnelInfo": "Cihazlar herhangi bir ağda olabilir — tünel URL'si her yerde çalışır",
-    "tunnelUrlTitle": "Tünel URL'si",
     "feastTunnelUrlTitle": "feast. Tünel URL'si",
     "shareUrl": "Bu URL'yi herhangi bir ağdaki personelle paylaşın",
     "permanentUrlInfo": "Bu URL kalıcıdır ve yeniden başlatmalarda aynı kalır.",
-    "temporaryUrlInfo": "Bu URL geçicidir ve sunucu her yeniden başlatıldığında değişir.",
     "refreshStatus": "Durumu Yenile",
     "serverStarted": "Sunucu başlatıldı{{mode}} port {{port}}",
     "serverStopped": "Sunucu durduruldu",
-    "withFeastTunnel": " feast tüneli ile",
-    "withTunnel": " tünel ile"
+    "withFeastTunnel": " feast tüneli ile"
   },
 
   "settings": {
     "cacheMenu": "Önbellek ve Menü",
+    "uiMode": "Görünüm Modu",
+    "uiModeTitle": "Uygulama görünümünü seçin",
+    "uiModeSub": "Dokunmatik mod düğmeleri, yazıları ve boşlukları büyütür. Kompakt mod ise klasik sıkışık düzendir.",
+    "uiModeTouch": "Dokunmatik",
+    "uiModeTouchDesc": "Büyük düğmeler, dokunmatik ekranlar için ideal",
+    "uiModeCompact": "Kompakt",
+    "uiModeCompactDesc": "Klasik sıkışık düzen, fare/klavye için uygun",
+    "uiModeNote": "Analitik sayfası ve garson/mutfak sunucu arayüzü büyütülmez.",
     "endOfDay": "Gün Sonu",
     "discounts": "İndirimler",
     "exportImport": "Dışa / İçe Aktar",
@@ -282,6 +285,7 @@
     "starter": "Başlangıç",
     "essential": "Temel",
     "professional": "Profesyonel",
+    "business": "İşletme",
     "enterprise": "Kurumsal",
     "allFeaturesUnlocked": "Tüm özellikler açık",
     "upgradeForMore": "Daha fazla özellik için yükseltin",

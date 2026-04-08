@@ -1,10 +1,11 @@
 import './i18n/index.js'
 import React, { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AppShell } from './components/layout/AppShell.jsx'
 import { ToastProvider } from './components/ui/Toast.jsx'
 import { useRestaurantStore } from './store/useRestaurantStore.js'
+import { useSettingsStore } from './store/useSettingsStore.js'
 import { PasswordGate } from './components/ui/PasswordGate.jsx'
 import { LockGuard } from './components/layout/LockGuard.jsx'
 
@@ -31,10 +32,24 @@ function LoadingScreen() {
 
 export default function App() {
   const { init, isConnected, isLoading } = useRestaurantStore()
+  const uiMode = useSettingsStore((s) => s.uiMode)
+  const location = useLocation()
 
   useEffect(() => {
     init()
   }, [])
+
+  // Touch-mode scaling: add `ui-touch` class to <html> when in touch mode,
+  // but skip it on the Analyze route (user wants Analyze to stay compact).
+  useEffect(() => {
+    const root = document.documentElement
+    const onAnalyze = location.pathname.startsWith('/analyze')
+    if (uiMode === 'touch' && !onAnalyze) {
+      root.classList.add('ui-touch')
+    } else {
+      root.classList.remove('ui-touch')
+    }
+  }, [uiMode, location.pathname])
 
   if (isLoading) return <LoadingScreen />
 

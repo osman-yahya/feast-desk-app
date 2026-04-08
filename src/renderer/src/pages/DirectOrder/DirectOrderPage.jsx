@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ShoppingCart, Trash2, CreditCard, Plus, Minus, Tag, ChevronRight } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal.jsx'
 import { Button } from '../../components/ui/Button.jsx'
+import { TouchKeypad } from '../../components/ui/TouchKeypad.jsx'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useOrderStore } from '../../store/useOrderStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
@@ -12,14 +13,16 @@ export function DirectOrderPage() {
   const { t } = useTranslation()
   const menu = useRestaurantStore((s) => s.menu)
   const { directOrder, directItems, createOrder, addItem, removeItem, updateItem, clearDirectOrder } = useOrderStore()
-  const { discounts, settings } = useSettingsStore()
+  const { discounts, settings, uiMode } = useSettingsStore()
   const toast = useToast()
+  const isTouch = uiMode === 'touch'
 
   const categories = menu?.content?.categories || []
   const [activeCatIdx, setActiveCatIdx] = useState(0)
   const [showCheckout, setShowCheckout] = useState(false)
   const [discountPct, setDiscountPct] = useState(0)
   const [manualDiscount, setManualDiscount] = useState('')
+  const [showDiscountKeypad, setShowDiscountKeypad] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [checkoutNote, setCheckoutNote] = useState('')
   const [finalizing, setFinalizing] = useState(false)
@@ -270,23 +273,35 @@ export function DirectOrderPage() {
               </div>
             )}
 
-            {/* Manual percentage input */}
+            {/* Manual percentage input — tap opens TouchKeypad in touch mode */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={manualDiscount}
-                  onChange={(e) => {
-                    setManualDiscount(e.target.value)
-                    setDiscountPct(0)
-                  }}
-                  placeholder={discountPct > 0 ? `${discountPct}%` : '0%'}
-                  className="w-full border border-border-warm rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand pr-7 text-center"
-                />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-muted font-semibold">%</span>
+                {isTouch ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscountKeypad(true)}
+                    className="w-full border border-border-warm rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand pr-7 text-center bg-white hover:border-brand transition-colors"
+                  >
+                    {manualDiscount !== ''
+                      ? manualDiscount
+                      : (discountPct > 0 ? `${discountPct}` : <span className="text-gray-400">0</span>)}
+                  </button>
+                ) : (
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={manualDiscount}
+                    onChange={(e) => {
+                      setManualDiscount(e.target.value)
+                      setDiscountPct(0)
+                    }}
+                    placeholder={discountPct > 0 ? `${discountPct}%` : '0%'}
+                    className="w-full border border-border-warm rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand pr-7 text-center"
+                  />
+                )}
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-muted font-semibold pointer-events-none">%</span>
               </div>
               {(manualDiscount !== '' || discountPct > 0) && (
                 <button
@@ -327,6 +342,29 @@ export function DirectOrderPage() {
           </Button>
         </div>
       </div>
+
+      {/* Discount keypad (touch mode) */}
+      <TouchKeypad
+        open={showDiscountKeypad}
+        value={manualDiscount || (discountPct > 0 ? String(discountPct) : '')}
+        mode="numeric"
+        title={t('common.discount') + ' %'}
+        suffix="%"
+        maxLength={5}
+        onChange={(v) => setManualDiscount(v)}
+        onClose={() => setShowDiscountKeypad(false)}
+        onSubmit={(v) => {
+          const n = parseFloat(v)
+          if (!isNaN(n) && n >= 0 && n <= 100) {
+            setManualDiscount(v)
+            setDiscountPct(0)
+          } else if (v === '') {
+            setManualDiscount('')
+            setDiscountPct(0)
+          }
+          setShowDiscountKeypad(false)
+        }}
+      />
 
       {/* Checkout modal */}
       <Modal open={showCheckout} onClose={() => setShowCheckout(false)} title={t('directOrder.checkout')} size="md">

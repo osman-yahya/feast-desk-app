@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button.jsx'
 import { ConfirmLock } from '../../components/ui/ConfirmLock.jsx'
 import { Modal } from '../../components/ui/Modal.jsx'
 import { Card } from '../../components/ui/Card.jsx'
+import { TouchKeypad } from '../../components/ui/TouchKeypad.jsx'
 import { useOrderStore } from '../../store/useOrderStore.js'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
@@ -23,6 +24,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
   const [showCheckout, setShowCheckout] = useState(false)
   const [showDutch, setShowDutch] = useState(false)
   const [showEqualSplit, setShowEqualSplit] = useState(false)
+  const [showDiscountKeypad, setShowDiscountKeypad] = useState(false)
   const [activeCatIdx, setActiveCatIdx] = useState(0)
   const [discountPct, setDiscountPct] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState('cash')
@@ -245,7 +247,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
       {/* Actions */}
       <div className="px-4 py-4 border-t border-border-warm flex-shrink-0 space-y-3">
         {/* Discount chips */}
-        {items.length > 0 && discounts.length > 0 && (
+        {items.length > 0 && (
           <div className="flex flex-wrap gap-1">
             <button onClick={() => setDiscountPct(0)}
               className={`px-2 py-0.5 rounded-pill text-xs font-medium ${discountPct === 0 ? 'bg-brand text-white' : 'bg-gray-100 text-ink-muted hover:bg-gray-200'}`}>
@@ -257,6 +259,19 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
                 {d.label}
               </button>
             ))}
+            {/* Custom discount — opens touch keypad modal */}
+            <button
+              onClick={() => setShowDiscountKeypad(true)}
+              className={`px-2 py-0.5 rounded-pill text-xs font-medium ${
+                discountPct > 0 && !discounts.some((d) => d.pct === discountPct)
+                  ? 'bg-brand text-white'
+                  : 'bg-gray-100 text-ink-muted hover:bg-gray-200'
+              }`}
+            >
+              {discountPct > 0 && !discounts.some((d) => d.pct === discountPct)
+                ? `${discountPct}%`
+                : t('common.custom')}
+            </button>
           </div>
         )}
 
@@ -544,6 +559,26 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
           <Button onClick={() => setShowEqualSplit(false)} variant="secondary" className="w-full">{t('common.done')}</Button>
         </div>
       </Modal>
+
+      {/* Discount keypad */}
+      <TouchKeypad
+        open={showDiscountKeypad}
+        value={discountPct > 0 ? String(discountPct) : ''}
+        mode="numeric"
+        title={t('common.discount') + ' %'}
+        suffix="%"
+        maxLength={5}
+        onClose={() => setShowDiscountKeypad(false)}
+        onSubmit={(v) => {
+          const n = parseFloat(v)
+          if (!isNaN(n) && n >= 0 && n <= 100) {
+            setDiscountPct(n)
+          } else if (v === '') {
+            setDiscountPct(0)
+          }
+          setShowDiscountKeypad(false)
+        }}
+      />
     </div>
   )
 }

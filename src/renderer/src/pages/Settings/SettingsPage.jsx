@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   RefreshCw, Sunset, Tag, Download, Upload, Settings, Lock, Eye, EyeOff, Trash2, Plus, ExternalLink, Unlock,
-  ChefHat, Star, Languages
+  ChefHat, Star, Languages, Hand, Minimize2, Monitor
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../../i18n/index.js'
@@ -16,7 +16,7 @@ import { useToast } from '../../components/ui/Toast.jsx'
 export function SettingsPage() {
   const { t } = useTranslation()
   const toast = useToast()
-  const { settings, discounts, loadAll, set: setSetting, saveDiscount, deleteDiscount, lock, sessionUnlocked } = useSettingsStore()
+  const { settings, discounts, loadAll, set: setSetting, saveDiscount, deleteDiscount, lock, sessionUnlocked, uiMode, setUiMode } = useSettingsStore()
   const { restaurant, refresh, disconnect } = useRestaurantStore()
 
   const [activeSection, setActiveSection] = useState('cache')
@@ -111,6 +111,7 @@ export function SettingsPage() {
 
   const sections = [
     { id: 'cache', label: t('settings.cacheMenu'), icon: RefreshCw },
+    { id: 'uimode', label: t('settings.uiMode'), icon: Monitor },
     { id: 'endofday', label: t('settings.endOfDay'), icon: Sunset },
     { id: 'discounts', label: t('settings.discounts'), icon: Tag },
     { id: 'config', label: t('settings.exportImport'), icon: Download },
@@ -120,7 +121,7 @@ export function SettingsPage() {
     { id: 'language', label: t('settings.language'), icon: Languages }
   ]
 
-  const LEVEL_LABELS = { 1: t('settings.starter'), 2: t('settings.essential'), 3: t('settings.professional'), 4: t('settings.enterprise') }
+  const LEVEL_LABELS = { 1: t('settings.starter'), 2: t('settings.essential'), 3: t('settings.professional'), 4: t('settings.business'), 5: t('settings.enterprise') }
   const level = restaurant?.level ?? 1
 
   return (
@@ -157,7 +158,7 @@ export function SettingsPage() {
                       <p className="text-white font-bold text-base">{LEVEL_LABELS[level] ?? `Level ${level}`}</p>
                       <p className="text-gray-400 text-sm truncate">{restaurant.restaurant_name}</p>
                       <p className="text-gray-500 text-xs mt-0.5">
-                        Level {level} — {level >= 4 ? t('settings.allFeaturesUnlocked') : t('settings.upgradeForMore')}
+                        Level {level} — {level >= 5 ? t('settings.allFeaturesUnlocked') : t('settings.upgradeForMore')}
                       </p>
                     </div>
                   </div>
@@ -200,6 +201,47 @@ export function SettingsPage() {
             <Card>
               <CardHeader title={t('settings.disconnect')} subtitle={t('settings.disconnectSub')} />
               <ConfirmLock onConfirm={() => { disconnect(); toast(t('settings.disconnected'), 'info') }} label={t('settings.holdToDisconnect')} />
+            </Card>
+          </div>
+        )}
+
+        {/* UI Mode section */}
+        {activeSection === 'uimode' && (
+          <div className="space-y-4 max-w-lg">
+            <h2 className="font-bold text-lg text-ink">{t('settings.uiMode')}</h2>
+            <Card>
+              <CardHeader title={t('settings.uiModeTitle')} subtitle={t('settings.uiModeSub')} />
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUiMode('touch')}
+                  className={`flex flex-col items-center gap-2 px-4 py-5 rounded-2xl border-2 transition-all ${
+                    uiMode === 'touch' ? 'border-brand bg-brand-pale' : 'border-border-warm hover:border-gray-300'
+                  }`}
+                >
+                  <Hand size={26} className={uiMode === 'touch' ? 'text-brand' : 'text-ink-muted'} />
+                  <span className={`font-semibold text-sm ${uiMode === 'touch' ? 'text-brand' : 'text-ink'}`}>
+                    {t('settings.uiModeTouch')}
+                  </span>
+                  <span className="text-[11px] text-ink-muted text-center">{t('settings.uiModeTouchDesc')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUiMode('compact')}
+                  className={`flex flex-col items-center gap-2 px-4 py-5 rounded-2xl border-2 transition-all ${
+                    uiMode === 'compact' ? 'border-brand bg-brand-pale' : 'border-border-warm hover:border-gray-300'
+                  }`}
+                >
+                  <Minimize2 size={26} className={uiMode === 'compact' ? 'text-brand' : 'text-ink-muted'} />
+                  <span className={`font-semibold text-sm ${uiMode === 'compact' ? 'text-brand' : 'text-ink'}`}>
+                    {t('settings.uiModeCompact')}
+                  </span>
+                  <span className="text-[11px] text-ink-muted text-center">{t('settings.uiModeCompactDesc')}</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-ink-muted mt-3">
+                {t('settings.uiModeNote')}
+              </p>
             </Card>
           </div>
         )}
@@ -482,6 +524,7 @@ export function SettingsPage() {
                     onClick={() => {
                       i18n.changeLanguage(lang.code)
                       localStorage.setItem('feast_language', lang.code)
+                      window.feastAPI.settings.set('language', lang.code)
                     }}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-1 ${
                       i18n.language === lang.code

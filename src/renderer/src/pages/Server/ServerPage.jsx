@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Wifi, WifiOff, Users, ChefHat, QrCode, RefreshCw, Globe, Shield, Loader2, Lock, Zap } from 'lucide-react'
+import { Wifi, WifiOff, Users, ChefHat, RefreshCw, Shield, Loader2, Lock, Zap } from 'lucide-react'
 import { Card, CardHeader } from '../../components/ui/Card.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { PillBadge } from '../../components/ui/PillBadge.jsx'
@@ -8,7 +8,7 @@ import { useServerStore } from '../../store/useServerStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useToast } from '../../components/ui/Toast.jsx'
-import { FREE_TUNNEL_MIN_LEVEL, FEAST_TUNNEL_MIN_LEVEL } from '../../config/modules.config.js'
+import { FEAST_TUNNEL_MIN_LEVEL } from '../../config/modules.config.js'
 
 export function ServerPage() {
   const {
@@ -21,7 +21,6 @@ export function ServerPage() {
   const toast = useToast()
   const { t } = useTranslation()
   const [selectedMode, setSelectedMode] = useState('local')
-  const canFreeTunnel = level >= FREE_TUNNEL_MIN_LEVEL
   const canFeastTunnel = level >= FEAST_TUNNEL_MIN_LEVEL
   const [starting, setStarting] = useState(false)
 
@@ -36,7 +35,7 @@ export function ServerPage() {
     try {
       const result = await start(selectedMode)
       if (result.success) {
-        const modeLabel = result.mode === 'feast-tunnel' ? t('server.withFeastTunnel') : result.mode === 'tunnel' ? t('server.withTunnel') : ''
+        const modeLabel = result.mode === 'feast-tunnel' ? t('server.withFeastTunnel') : ''
         toast(t('server.serverStarted', { mode: modeLabel, port: result.port }), 'success')
       } else {
         toast(result.error || 'Failed to start server', 'error')
@@ -72,7 +71,7 @@ export function ServerPage() {
           title={isRunning ? t('server.serverActive') : t('server.serverOffline')}
           subtitle={
             isRunning
-              ? connectionMode === 'tunnel'
+              ? connectionMode === 'feast-tunnel' && tunnelUrl
                 ? t('server.tunnelActive', { url: tunnelUrl })
                 : t('server.listeningOn', { ip, port })
               : t('server.startHint')
@@ -83,14 +82,9 @@ export function ServerPage() {
             <PillBadge
               label={
                 connectionMode === 'feast-tunnel' ? t('server.feastTunnel') :
-                connectionMode === 'tunnel' ? t('server.freeTunnel') :
                 t('server.localNetwork')
               }
-              color={
-                connectionMode === 'feast-tunnel' ? 'green' :
-                connectionMode === 'tunnel' ? 'amber' :
-                'green'
-              }
+              color="green"
             />
           </div>
         )}
@@ -127,7 +121,7 @@ export function ServerPage() {
       {!isRunning && (
         <div>
           <h2 className="font-semibold text-sm text-ink mb-3">{t('server.connectionType')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Local Network */}
             <button
               onClick={() => setSelectedMode('local')}
@@ -155,43 +149,6 @@ export function ServerPage() {
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.fastest')}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.private')}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{t('server.sameWifiOnly')}</span>
-              </div>
-            </button>
-
-            {/* Free Tunnel */}
-            <button
-              onClick={() => canFreeTunnel && setSelectedMode('tunnel')}
-              className={`text-left p-4 rounded-2xl border-2 transition-all relative ${
-                !canFreeTunnel
-                  ? 'border-border-warm bg-gray-50 opacity-60 cursor-not-allowed'
-                  : selectedMode === 'tunnel'
-                  ? 'border-brand bg-brand/5'
-                  : 'border-border-warm bg-white hover:border-gray-300'
-              }`}
-            >
-              {!canFreeTunnel && (
-                <div className="absolute top-3 right-3">
-                  <Lock size={14} className="text-gray-400" />
-                </div>
-              )}
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  selectedMode === 'tunnel' && canFreeTunnel ? 'bg-brand/10' : 'bg-gray-100'
-                }`}>
-                  <Globe size={18} className={selectedMode === 'tunnel' && canFreeTunnel ? 'text-brand' : 'text-ink-muted'} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-ink">{t('server.freeTunnel')}</p>
-                  <p className="text-xs text-ink-muted">{t('server.internetTunnel')}</p>
-                </div>
-              </div>
-              <p className="text-xs text-ink-muted leading-relaxed">
-                {t('server.freeTunnelDesc')}
-              </p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{t('server.anyNetwork')}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{t('server.temporaryUrl')}</span>
-                {!canFreeTunnel && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">{t('common.level')} {FREE_TUNNEL_MIN_LEVEL}+</span>}
               </div>
             </button>
 
@@ -238,8 +195,6 @@ export function ServerPage() {
             <p className="text-xs text-ink-muted leading-relaxed">
               {selectedMode === 'local' ? (
                 <><strong className="text-ink">{t('server.recommendedWhen')}</strong> {t('server.localRecommendation')}</>
-              ) : selectedMode === 'tunnel' ? (
-                <><strong className="text-ink">{t('server.recommendedWhen')}</strong> {t('server.tunnelRecommendation')}</>
               ) : (
                 <><strong className="text-ink">{t('server.recommendedWhen')}</strong> {t('server.feastRecommendation')}</>
               )}
@@ -281,9 +236,7 @@ export function ServerPage() {
                 { icon: '3', text: t('server.step3') },
                 ...(connectionMode === 'local'
                   ? [{ icon: '!', text: t('server.localWarning') }]
-                  : connectionMode === 'feast-tunnel'
-                  ? [{ icon: '!', text: t('server.feastTunnelInfo') }]
-                  : [{ icon: '!', text: t('server.freeTunnelInfo') }]
+                  : [{ icon: '!', text: t('server.feastTunnelInfo') }]
                 )
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2.5">
@@ -299,10 +252,10 @@ export function ServerPage() {
       )}
 
       {/* Tunnel URL display when running in tunnel mode */}
-      {isRunning && (connectionMode === 'tunnel' || connectionMode === 'feast-tunnel') && tunnelUrl && (
+      {isRunning && connectionMode === 'feast-tunnel' && tunnelUrl && (
         <Card>
           <CardHeader
-            title={connectionMode === 'feast-tunnel' ? t('server.feastTunnelUrlTitle') : t('server.tunnelUrlTitle')}
+            title={t('server.feastTunnelUrlTitle')}
             subtitle={t('server.shareUrl')}
           />
           <div className="flex items-center gap-2">
@@ -311,10 +264,7 @@ export function ServerPage() {
             </code>
           </div>
           <p className="text-xs text-ink-muted mt-2">
-            {connectionMode === 'feast-tunnel'
-              ? t('server.permanentUrlInfo')
-              : t('server.temporaryUrlInfo')
-            }
+            {t('server.permanentUrlInfo')}
           </p>
         </Card>
       )}
