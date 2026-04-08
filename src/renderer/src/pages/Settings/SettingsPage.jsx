@@ -121,7 +121,7 @@ export function SettingsPage() {
     { id: 'language', label: t('settings.language'), icon: Languages }
   ]
 
-  const LEVEL_LABELS = { 1: t('settings.starter'), 2: t('settings.essential'), 3: t('settings.professional'), 4: t('settings.enterprise') }
+  const LEVEL_LABELS = { 1: t('settings.starter'), 2: t('settings.essential'), 3: t('settings.professional'), 4: t('settings.business'), 5: t('settings.enterprise') }
   const level = restaurant?.level ?? 1
 
   return (
@@ -158,7 +158,7 @@ export function SettingsPage() {
                       <p className="text-white font-bold text-base">{LEVEL_LABELS[level] ?? `Level ${level}`}</p>
                       <p className="text-gray-400 text-sm truncate">{restaurant.restaurant_name}</p>
                       <p className="text-gray-500 text-xs mt-0.5">
-                        Level {level} — {level >= 4 ? t('settings.allFeaturesUnlocked') : t('settings.upgradeForMore')}
+                        Level {level} — {level >= 5 ? t('settings.allFeaturesUnlocked') : t('settings.upgradeForMore')}
                       </p>
                     </div>
                   </div>

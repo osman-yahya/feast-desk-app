@@ -25,7 +25,7 @@ export const MODULE_CONFIG = [
     label: 'Analyze',
     icon: 'BarChart2',
     path: '/analyze',
-    minLevel: 2,
+    minLevel: 1,
     description: 'Past sales data and reports'
   },
   {
@@ -47,7 +47,7 @@ export const MODULE_CONFIG = [
   }
 ]
 
-export const ADVANCED_ANALYZE_MIN_LEVEL = 3
+export const ADVANCED_ANALYZE_MIN_LEVEL = 2
 
 // Server connection mode level gates (within the server module)
 export const FEAST_TUNNEL_MIN_LEVEL = 3
