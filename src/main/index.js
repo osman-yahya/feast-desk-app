@@ -19,6 +19,13 @@ import { register as registerSettings } from './ipc/settings.ipc.js'
 
 let mainWindow
 
+function getIconPath() {
+  if (process.platform !== 'win32') return undefined
+  return app.isPackaged
+    ? join(process.resourcesPath, 'icons', 'icon.ico')
+    : join(app.getAppPath(), 'resources', 'icon.ico')
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -29,6 +36,7 @@ function createWindow() {
     autoHideMenuBar: true,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     backgroundColor: '#FFFDF8',
+    icon: getIconPath(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

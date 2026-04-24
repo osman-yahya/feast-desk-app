@@ -29,7 +29,8 @@ module.exports = {
     }
   ],
   win: {
-    target: [{ target: 'nsis', arch: ['x64'] }]
+    target: [{ target: 'nsis', arch: ['x64'] }],
+    icon: 'resources/icon.ico'
   },
   nsis: {
     oneClick: false,
