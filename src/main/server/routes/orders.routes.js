@@ -8,8 +8,21 @@ export function ordersRoutes() {
   const router = Router()
 
   // GET /api/orders — all open orders (with table names)
+  // ?kitchen=1 → filter to last 18 hours only (avoid stale orders from previous days)
   router.get('/', (req, res) => {
-    res.json(orderRepo.getOpen())
+    if (req.query.kitchen === '1') {
+      res.json(orderRepo.getOpenForKitchen())
+    } else {
+      res.json(orderRepo.getOpen())
+    }
+  })
+
+  // GET /api/orders/by-id/:orderId — single order by ID + items (used by kitchen for direct orders)
+  router.get('/by-id/:orderId', (req, res) => {
+    const order = orderRepo.getById(parseInt(req.params.orderId, 10))
+    if (!order) return res.status(404).json({ message: 'Order not found' })
+    const items = orderItemRepo.getByOrder(order.id)
+    res.json({ ...order, items })
   })
 
   // GET /api/orders/:tableId — single table's open order + items

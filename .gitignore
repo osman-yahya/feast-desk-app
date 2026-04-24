@@ -3,3 +3,9 @@ out/
 dist/
 *.local
 .env
+certs/
+*.p12
+*.pem
+*.key
+.DS_Store
+build.log

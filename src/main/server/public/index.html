@@ -141,6 +141,9 @@
     .kitchen-card.red   { border-left-color: #EF4444; }
     .kitchen-card.blink { border-left-color: #EF4444; animation: blink-border 0.7s ease-in-out infinite alternate; }
     .kitchen-card.done  { border-left-color: #22C55E; opacity: 0.55; }
+    .kitchen-card.direct-paid { border-left-color: #F59E0B; background: #FFFBEB; }
+    .direct-paid-banner { background: #FEF3C7; border: 1.5px solid #FCD34D; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .direct-paid-banner span { font-size: 12px; font-weight: 600; color: #92400E; }
     @keyframes blink-border { from { border-left-color: #EF4444; } to { border-left-color: #FCA5A5; } }
     .kitchen-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
     .kitchen-table { font-weight: 700; font-size: 16px; }
@@ -153,6 +156,7 @@
     .kitchen-item { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #F5F0EB; font-size: 14px; }
     .kitchen-item:last-of-type { border-bottom: none; }
     .kitchen-item.new { color: #FF3131; font-weight: 600; background: #FFF5F5; border-radius: 6px; padding: 7px 6px; margin: 0 -6px; }
+    .kitchen-item.was-done { text-decoration: line-through; opacity: 0.55; color: #78716C; }
     .new-items-banner { background: #FFF5F5; border: 1.5px solid #FCA5A5; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
     .new-items-banner span { font-size: 12px; font-weight: 600; color: #DC2626; }
     .kitchen-actions { margin-top: 12px; display: flex; gap: 8px; }
@@ -382,6 +386,7 @@ let kitchenSettings = {
   kitchen_timer_green: 5,
   kitchen_timer_red: 20,
   kitchen_timer_done: 30,
+  kitchen_direct_order_ttl: 5,
   currency_symbol: '₺'
 }
 let activeFloorId = null
@@ -502,7 +507,9 @@ const translations = {
     orderPaid: '💰 Order paid',
     items: 'items',
     item: 'item',
-    freeItem: 'Free'
+    freeItem: 'Free',
+    directOrder: 'Direct Order',
+    paidPrepare: '💰 Paid — prepare!'
   },
   tr: {
     // Role selection
@@ -597,7 +604,9 @@ const translations = {
     orderPaid: '💰 Sipariş ödendi',
     items: 'ürün',
     item: 'ürün',
-    freeItem: 'Ücretsiz'
+    freeItem: 'Ücretsiz',
+    directOrder: 'Kasadan Sipariş',
+    paidPrepare: '💰 Ödendi — hazırla!'
   }
 }
 
@@ -1370,35 +1379,41 @@ function scheduleKitchenRefresh() {
 
 async function refreshKitchenOrders() {
   try {
-    const orders = await fetch(API_BASE + '/api/orders').then(r => { if (!r.ok) throw new Error(); return r.json() })
-    const activeTids = new Set()
+    const orders = await fetch(API_BASE + '/api/orders?kitchen=1').then(r => { if (!r.ok) throw new Error(); return r.json() })
+    const activeOids = new Set()
 
     for (const o of orders) {
-      const tid = o.table_id
-      if (!tid) continue
-      activeTids.add(tid)
+      const oid = o.id
+      activeOids.add(oid)
 
-      const detail = await fetch(`${API_BASE}/api/orders/${tid}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      const detail = await fetch(`${API_BASE}/api/orders/by-id/${oid}`).then(r => r.ok ? r.json() : null).catch(() => null)
       if (!detail) continue
       const newItems = detail.items || []
 
-      if (!kitchenOrders.has(tid)) {
+      // Display name: table orders use table_name, direct orders use translated label
+      const displayName = o.table_id
+        ? (o.table_name || `${T('table')} ${o.table_id}`)
+        : `${T('directOrder')} #${oid}`
+
+      if (!kitchenOrders.has(oid)) {
         // New order we haven't seen — initialise done from DB
         const knownItemMap = new Map()
         newItems.forEach(i => knownItemMap.set(i.id, i.quantity))
-        kitchenOrders.set(tid, {
-          tableId: tid,
-          tableName: o.table_name || `${T('table')} ${tid}`,
-          orderId: o.id,
+        kitchenOrders.set(oid, {
+          tableId: o.table_id,
+          tableName: displayName,
+          orderId: oid,
+          isDirect: !o.table_id,
           items: newItems,
           openedAt: o.opened_at || Date.now(),
           done: !!o.kitchen_done_at,
+          wasDone: false,
           undoTimeout: null,
           knownItemMap // tracks id→quantity the kitchen has acknowledged
         })
       } else {
-        const existing = kitchenOrders.get(tid)
-        existing.tableName = o.table_name || existing.tableName
+        const existing = kitchenOrders.get(oid)
+        existing.tableName = displayName
 
         // Compare items to detect changes
         const oldSig = existing.items.map(i => `${i.id}:${i.quantity}`).sort().join(',')
@@ -1408,6 +1423,7 @@ async function refreshKitchenOrders() {
           // Re-open: items changed after kitchen marked done → show NEW badges
           // knownItemMap stays as-is (from when Done was clicked), so new items get badges
           existing.done = false
+          existing.wasDone = true
           existing.openedAt = Date.now()
           fetch(`${API_BASE}/api/orders/${existing.orderId}/kitchen-undo`, { method: 'PATCH' }).catch(() => {})
         } else if (!existing.done && oldSig !== newSig) {
@@ -1423,9 +1439,9 @@ async function refreshKitchenOrders() {
       }
     }
 
-    // Remove paid/deleted orders from kitchen view
-    for (const [tid] of kitchenOrders) {
-      if (!activeTids.has(tid)) kitchenOrders.delete(tid)
+    // Remove paid/deleted orders from kitchen view (but keep direct-paid orders until TTL expires)
+    for (const [oid, o] of kitchenOrders) {
+      if (!activeOids.has(oid) && !o.directPaid) kitchenOrders.delete(oid)
     }
 
     renderKitchenOrders()
@@ -1437,14 +1453,30 @@ async function refreshKitchenOrders() {
 // ══════════════════════════════════════════════════════════════════════
 function startKitchenTimer() {
   if (kitchenTimerInterval) clearInterval(kitchenTimerInterval)
-  kitchenTimerInterval = setInterval(renderKitchenOrders, 30000) // re-render for timer badge updates
+  kitchenTimerInterval = setInterval(() => {
+    checkAutoDone()
+    renderKitchenOrders()
+  }, 30000) // re-render for timer badge updates
+}
+
+// Auto-mark orders as done when timer-based mode is active and order exceeds kitchen_timer_done threshold
+function checkAutoDone() {
+  if (kitchenSettings.kitchen_approval_enabled) return
+  const doneThreshold = kitchenSettings.kitchen_timer_done
+  if (!doneThreshold) return
+  for (const [oid, o] of kitchenOrders) {
+    if (o.done || o._pendingDone) continue
+    const mins = Math.floor((Date.now() - o.openedAt) / 60000)
+    if (mins >= doneThreshold) {
+      markOrderDone(oid)
+    }
+  }
 }
 
 function getTimerInfo(openedAt) {
   const mins = Math.floor((Date.now() - openedAt) / 60000)
   const g = kitchenSettings.kitchen_timer_green
   const r = kitchenSettings.kitchen_timer_red
-  const d = kitchenSettings.kitchen_timer_done
   if (mins < g)  return { cls: 'green', label: `${mins}m`, mins }
   if (mins < r)  return { cls: 'amber', label: `${mins}m`, mins }
   return { cls: 'red', label: `${mins}m`, mins }
@@ -1454,10 +1486,11 @@ function renderKitchenOrders() {
   const container = document.getElementById('kitchen-orders')
   const empty = document.getElementById('kitchen-empty')
   const all = [...kitchenOrders.values()]
-  const active = all.filter(o => !o.done && !o._pendingDone)
+  const directPaid = all.filter(o => o.directPaid && !o.done && !o._pendingDone)
+  const active = all.filter(o => !o.done && !o._pendingDone && !o.directPaid)
   const pending = all.filter(o => o._pendingDone)
-  const done = all.filter(o => o.done)
-  const list = [...active, ...pending, ...done]
+  const done = all.filter(o => o.done && !o.directPaid)
+  const list = [...directPaid, ...active, ...pending, ...done]
 
   if (!list.length) { container.innerHTML = ''; empty.style.display = ''; return }
   empty.style.display = 'none'
@@ -1465,11 +1498,31 @@ function renderKitchenOrders() {
   const approvalEnabled = kitchenSettings.kitchen_approval_enabled
 
   container.innerHTML = list.map(o => {
+    const icon = o.isDirect ? '📦' : '🪑'
+
+    // ── Direct-paid cards (paid at counter, still needs preparation) ──
+    if (o.directPaid && !o.done) {
+      const elapsed = Math.floor((Date.now() - (o.directPaidAt || Date.now())) / 60000)
+      const ttl = kitchenSettings.kitchen_direct_order_ttl || 5
+      const remaining = Math.max(0, ttl - elapsed)
+      return `<div class="kitchen-card direct-paid">
+        <div class="kitchen-header">
+          <span class="kitchen-table">${icon} ${o.tableName}</span>
+          <span class="kitchen-time">${remaining}m</span>
+        </div>
+        <div class="direct-paid-banner"><span>${T('paidPrepare')}</span></div>
+        ${o.items.map(i => `<div class="kitchen-item"><span>${i.menu_item_name}</span><span class="qty-badge">×${i.quantity}</span></div>`).join('')}
+        <div class="kitchen-actions">
+          <button class="btn success sm inline" onclick="markOrderDone(${o.orderId})">✅ ${T('done')}</button>
+        </div>
+      </div>`
+    }
+
     // ── Done cards ──
     if (o.done) {
       return `<div class="kitchen-card done">
         <div class="kitchen-header">
-          <span class="kitchen-table">🪑 ${o.tableName}</span>
+          <span class="kitchen-table">${icon} ${o.tableName}</span>
           <span class="kitchen-time">${T('ready')}</span>
         </div>
         ${o.items.map(i => `<div class="kitchen-item"><span>${i.menu_item_name}</span><span class="qty-badge">×${i.quantity}</span></div>`).join('')}
@@ -1480,12 +1533,12 @@ function renderKitchenOrders() {
     if (o._pendingDone) {
       return `<div class="kitchen-card green">
         <div class="kitchen-header">
-          <span class="kitchen-table">🪑 ${o.tableName}</span>
+          <span class="kitchen-table">${icon} ${o.tableName}</span>
           <span class="kitchen-time">${T('markingReady')}</span>
         </div>
         ${o.items.map(i => `<div class="kitchen-item"><span>${i.menu_item_name}</span><span class="qty-badge">×${i.quantity}</span></div>`).join('')}
         <div class="kitchen-actions">
-          <button class="btn secondary sm inline" onclick="undoOrderDone(${o.tableId})">${T('undo')}</button>
+          <button class="btn secondary sm inline" onclick="undoOrderDone(${o.orderId})">${T('undo')}</button>
         </div>
       </div>`
     }
@@ -1508,23 +1561,24 @@ function renderKitchenOrders() {
 
     return `<div class="${cardCls}">
       <div class="kitchen-header">
-        <span class="kitchen-table">🪑 ${o.tableName}</span>
+        <span class="kitchen-table">${icon} ${o.tableName}</span>
         <div class="kitchen-meta">
           ${timerBadge}
           <span class="kitchen-time">${new Date(o.openedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
         </div>
       </div>
-      ${hasNewItems ? `<div class="new-items-banner"><span>🔔 ${T('newItemsAdded')}</span><button class="btn secondary sm inline" onclick="acknowledgeItems(${o.tableId})" style="padding:4px 10px;font-size:11px">${T('noted')}</button></div>` : ''}
+      ${hasNewItems ? `<div class="new-items-banner"><span>🔔 ${T('newItemsAdded')}</span><button class="btn secondary sm inline" onclick="acknowledgeItems(${o.orderId})" style="padding:4px 10px;font-size:11px">${T('noted')}</button></div>` : ''}
       ${o.items.map(i => {
         const prev = known.get(i.id)
         const isNew = prev === undefined
         const qtyDelta = !isNew && prev < i.quantity ? i.quantity - prev : 0
-        const cls = isNew ? ' new' : (qtyDelta > 0 ? ' new' : '')
+        const wasPrepared = o.wasDone && !isNew && qtyDelta === 0
+        const cls = isNew ? ' new' : (qtyDelta > 0 ? ' new' : (wasPrepared ? ' was-done' : ''))
         const label = isNew ? T('new') : (qtyDelta > 0 ? '+' + qtyDelta : '')
         return '<div class="kitchen-item' + cls + '"><span>' + i.menu_item_name + (label ? ' <span style="font-size:11px;background:#FF3131;color:white;border-radius:999px;padding:1px 7px;margin-left:4px">' + label + '</span>' : '') + '</span><span class="qty-badge">×' + i.quantity + '</span></div>'
       }).join('')}
       <div class="kitchen-actions">
-        <button class="btn success sm inline" onclick="markOrderDone(${o.tableId})">✅ ${approvalEnabled ? T('orderReady') : T('done')}</button>
+        <button class="btn success sm inline" onclick="markOrderDone(${o.orderId})">✅ ${approvalEnabled ? T('orderReady') : T('done')}</button>
       </div>
     </div>`
   }).join('')
@@ -1533,24 +1587,34 @@ function renderKitchenOrders() {
 // ══════════════════════════════════════════════════════════════════════
 //  KITCHEN — DONE / UNDO
 // ══════════════════════════════════════════════════════════════════════
-function acknowledgeItems(tableId) {
-  const order = kitchenOrders.get(tableId)
+function acknowledgeItems(orderId) {
+  const order = kitchenOrders.get(orderId)
   if (!order) return
   order.knownItemMap = new Map()
   order.items.forEach(i => order.knownItemMap.set(i.id, i.quantity))
+  order.wasDone = false
   renderKitchenOrders()
 }
 
-function markOrderDone(tableId) {
-  const order = kitchenOrders.get(tableId)
+function markOrderDone(orderId) {
+  const order = kitchenOrders.get(orderId)
   if (!order || order.done || order._pendingDone) return
+
+  // Direct-paid orders: already paid at counter, just remove from kitchen view
+  if (order.directPaid) {
+    kitchenOrders.delete(orderId)
+    renderKitchenOrders()
+    return
+  }
+
   // Acknowledge all items when marking done
   order.knownItemMap = new Map()
   order.items.forEach(i => order.knownItemMap.set(i.id, i.quantity))
+  order.wasDone = false
 
   // Notify waiters via WS
   if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'order:done', tableId, tableName: order.tableName, orderId: order.orderId }))
+    ws.send(JSON.stringify({ type: 'order:done', tableId: order.tableId, tableName: order.tableName, orderId: order.orderId }))
   }
 
   order._pendingDone = true
@@ -1562,14 +1626,14 @@ function markOrderDone(tableId) {
     remaining--
     if (remaining <= 0) {
       clearInterval(countdown)
-      commitOrderDone(tableId)
+      commitOrderDone(orderId)
     }
   }, 1000)
   order.undoTimeout = countdown
 }
 
-function undoOrderDone(tableId) {
-  const order = kitchenOrders.get(tableId)
+function undoOrderDone(orderId) {
+  const order = kitchenOrders.get(orderId)
   if (!order) return
   if (order.undoTimeout) clearInterval(order.undoTimeout)
   order.undoTimeout = null
@@ -1579,8 +1643,8 @@ function undoOrderDone(tableId) {
   fetch(`${API_BASE}/api/orders/${order.orderId}/kitchen-undo`, { method: 'PATCH' }).catch(() => {})
 }
 
-function commitOrderDone(tableId) {
-  const order = kitchenOrders.get(tableId)
+function commitOrderDone(orderId) {
+  const order = kitchenOrders.get(orderId)
   if (!order) return
   order.done = true
   order._pendingDone = false
@@ -1603,10 +1667,36 @@ function handleKitchenMsg(msg) {
   if (msg.type === 'order:items-changed') {
     scheduleKitchenRefresh()
   }
+  if (msg.type === 'order:direct-paid') {
+    // Direct order paid at counter — keep visible for kitchen to prepare, auto-remove after TTL
+    const order = msg.orderId ? kitchenOrders.get(msg.orderId) : null
+    if (order) {
+      order.directPaid = true
+      order.directPaidAt = Date.now()
+      renderKitchenOrders()
+      // Schedule auto-remove after TTL
+      const ttlMs = (kitchenSettings.kitchen_direct_order_ttl || 5) * 60000
+      setTimeout(() => {
+        const o = kitchenOrders.get(msg.orderId)
+        if (o && o.directPaid) {
+          kitchenOrders.delete(msg.orderId)
+          renderKitchenOrders()
+        }
+      }, ttlMs)
+    }
+    showNotif(`${T('paidPrepare')}`)
+  }
   if (msg.type === 'order:paid') {
-    const paidOrder = kitchenOrders.get(msg.tableId)
-    const paidName = paidOrder ? paidOrder.tableName : (msg.tableName || `${T('table')} ${msg.tableId}`)
-    kitchenOrders.delete(msg.tableId)
+    // Table order paid — remove from kitchen immediately
+    let paidOrder = msg.orderId ? kitchenOrders.get(msg.orderId) : null
+    if (paidOrder) {
+      kitchenOrders.delete(msg.orderId)
+    } else if (msg.tableId) {
+      for (const [oid, o] of kitchenOrders) {
+        if (o.tableId === msg.tableId) { paidOrder = o; kitchenOrders.delete(oid); break }
+      }
+    }
+    const paidName = paidOrder ? paidOrder.tableName : (msg.tableName || `${T('table')} ${msg.tableId || ''}`)
     renderKitchenOrders()
     showNotif(`${T('orderPaid')} — ${paidName}`)
   }

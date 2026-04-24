@@ -434,6 +434,22 @@ export function SettingsPage() {
                 </div>
               </Card>
             )}
+
+            <Card>
+              <CardHeader
+                title={t('settings.directOrderTTL')}
+                subtitle={t('settings.directOrderTTLSub')}
+              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" min={1} max={30}
+                  value={settings.kitchen_direct_order_ttl || 5}
+                  onChange={e => setSetting('kitchen_direct_order_ttl', e.target.value)}
+                  className="w-20 border border-border-warm rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand text-center"
+                />
+                <span className="text-sm text-ink-muted">{t('common.minutes')}</span>
+              </div>
+            </Card>
           </div>
         )}
 

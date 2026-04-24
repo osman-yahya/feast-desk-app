@@ -210,7 +210,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-medium truncate ${item.is_free ? 'line-through text-gray-400' : 'text-ink'}`}>
                   {item.menu_item_name}
-                  {item.is_paid_partial && <span className="ml-1 text-blue-500 text-[10px]">PAID</span>}
+                  {!!item.is_paid_partial && <span className="ml-1 text-blue-500 text-[10px]">PAID</span>}
                 </p>
                 <p className="text-xs text-brand font-semibold">
                   {item.is_free ? 'Free' : `${currency}${(item.unit_price * item.quantity).toFixed(2)}`}
@@ -366,7 +366,7 @@ export function TableOrderDrawer({ tableId, table, onClose }) {
                         {item.menu_item_name}
                       </span>
                       <span className="text-ink-muted ml-1">×{item.quantity}</span>
-                      {item.is_paid_partial && <span className="text-blue-500 text-[10px] ml-1">PAID</span>}
+                      {!!item.is_paid_partial && <span className="text-blue-500 text-[10px] ml-1">PAID</span>}
                       {item.applied_pct > 0 && !item.is_paid_partial && (
                         <span className="text-green-600 text-[10px] ml-1">-{item.applied_pct}%</span>
                       )}

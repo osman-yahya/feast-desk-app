@@ -114,10 +114,16 @@ export function register(ipcMain) {
   // Prune old data based on data_retention_days setting
   ipcMain.handle('settings:prune-old-data', () => {
     try {
+      const db = getDb()
       const days = parseInt(settingsRepo.get('data_retention_days') || '90', 10)
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
-      getDb().prepare("DELETE FROM checkouts WHERE paid_at < ?").run(cutoff)
-      getDb().prepare("DELETE FROM orders WHERE status IN ('paid','deleted') AND closed_at < ?").run(cutoff)
+      // Delete order_items first, then clear checkout_id FK, then orders, then checkouts
+      db.prepare(`DELETE FROM order_items WHERE order_id IN (
+        SELECT id FROM orders WHERE status IN ('paid','deleted') AND closed_at < ?
+      )`).run(cutoff)
+      db.prepare("UPDATE orders SET checkout_id = NULL WHERE status IN ('paid','deleted') AND closed_at < ?").run(cutoff)
+      db.prepare("DELETE FROM orders WHERE status IN ('paid','deleted') AND closed_at < ?").run(cutoff)
+      db.prepare("DELETE FROM checkouts WHERE paid_at < ?").run(cutoff)
       return { success: true }
     } catch (err) {
       return { success: false, error: err.message }

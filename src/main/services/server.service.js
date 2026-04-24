@@ -180,13 +180,13 @@ function handleClientMessage(msg, ws, role, mainWindow) {
     }
   } else if (role === 'kitchen') {
     if (msg.type === 'order:done') {
-      // Resolve table name from DB for accuracy instead of trusting client cache
-      const tableName = resolveTableNameFn
-        ? resolveTableNameFn(msg.tableId)
-        : (msg.tableName || `Table ${msg.tableId}`)
+      // Resolve table name from DB for accuracy; direct orders (no tableId) use client-provided name
+      const tableName = msg.tableId
+        ? (resolveTableNameFn ? resolveTableNameFn(msg.tableId) : (msg.tableName || `Table ${msg.tableId}`))
+        : (msg.tableName || 'Direct Order')
       broadcastToWaiters({ type: 'order:done', tableId: msg.tableId, tableName, orderId: msg.orderId })
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('server:order-done', { tableId: msg.tableId, tableName })
+        mainWindow.webContents.send('server:order-done', { tableId: msg.tableId, tableName, orderId: msg.orderId })
       }
     }
   }

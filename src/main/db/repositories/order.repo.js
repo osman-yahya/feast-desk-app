@@ -73,6 +73,13 @@ export const orderRepo = {
     getDb().prepare('UPDATE orders SET kitchen_done_at = NULL WHERE id = ?').run(id)
   },
 
+  getOpenForKitchen(maxAgeMs = 18 * 60 * 60 * 1000) {
+    const cutoff = Date.now() - maxAgeMs
+    return getDb()
+      .prepare("SELECT o.*, t.name as table_name FROM orders o LEFT JOIN tables t ON o.table_id = t.id WHERE o.status IN ('open','checkout_pending') AND o.opened_at > ? ORDER BY o.opened_at DESC")
+      .all(cutoff)
+  },
+
   getHistory(fromTs, toTs) {
     return getDb()
       .prepare("SELECT o.*, t.name as table_name FROM orders o LEFT JOIN tables t ON o.table_id = t.id WHERE o.status = 'paid' AND o.closed_at BETWEEN ? AND ? ORDER BY o.closed_at DESC")

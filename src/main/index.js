@@ -4,6 +4,7 @@ import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, getDb } from './db/database.js'
 import { checkCacheFreshness } from './services/cache.service.js'
+import { initAutoUpdater, installUpdate } from './services/updater.service.js'
 import { settingsRepo } from './db/repositories/settings.repo.js'
 
 // IPC handlers
@@ -118,6 +119,14 @@ app.whenReady().then(async () => {
   registerSettings(ipcMain)
 
   createWindow()
+
+  // IPC: install downloaded update
+  ipcMain.handle('update:install', () => {
+    installUpdate()
+  })
+
+  // Auto-updater (skipped in dev)
+  initAutoUpdater(() => mainWindow)
 
   // Background cache freshness check (non-blocking)
   setTimeout(async () => {

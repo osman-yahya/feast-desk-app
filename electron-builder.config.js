@@ -28,12 +28,6 @@ module.exports = {
       to: 'public'
     }
   ],
-  mac: {
-    target: [{ target: 'dmg', arch: ['arm64', 'x64'] }],
-    icon: 'resources/icons/icon.icns',
-    category: 'public.app-category.business',
-    darkModeSupport: false
-  },
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
     icon: 'resources/icons/icon.ico'
@@ -45,10 +39,10 @@ module.exports = {
     createStartMenuShortcut: true,
     shortcutName: 'feast.  Desk'
   },
-  linux: {
-    target: [{ target: 'AppImage', arch: ['x64'] }],
-    icon: 'resources/icons/icon.png',
-    category: 'Office'
-  },
-  publish: null
+  publish: {
+    provider: 'github',
+    owner: 'osman-yahya',
+    repo: 'feast-desk-releases',
+    releaseType: 'release'
+  }
 }
