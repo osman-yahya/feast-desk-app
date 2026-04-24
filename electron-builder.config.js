@@ -3,7 +3,7 @@
  */
 module.exports = {
   appId: 'tr.feast.desk',
-  productName: 'feast.  Desk',
+  productName: 'feast. Desk',
   copyright: 'Copyright © 2026 feast. ',
   directories: {
     buildResources: 'resources',
@@ -36,7 +36,7 @@ module.exports = {
     allowDirChange: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'feast.  Desk'
+    shortcutName: 'feast. Desk'
   },
   publish: {
     provider: 'github',

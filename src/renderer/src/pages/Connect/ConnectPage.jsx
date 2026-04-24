@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button.jsx'
 import { TouchKeypad } from '../../components/ui/TouchKeypad.jsx'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
+import logoUrl from '../../assets/logo.png'
 
 export function ConnectPage() {
   const { t } = useTranslation()
@@ -42,7 +43,7 @@ export function ConnectPage() {
         <div className="max-w-sm text-center space-y-8">
           {/* Logo */}
           <div className="flex items-center justify-center gap-3">
-            <img src="/src/assets/logo.png" alt="feast" className="h-14" />
+            <img src={logoUrl} alt="feast" className="h-14" />
           </div>
 
           <div className="space-y-4">

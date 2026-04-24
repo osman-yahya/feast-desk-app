@@ -4,6 +4,7 @@ import { ShoppingCart, LayoutGrid, BarChart2, Wifi, Settings, Lock, ChevronLeft,
 import { useTranslation } from 'react-i18next'
 import { getAccessibleModules, MODULE_CONFIG } from '../../config/modules.config.js'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
+import logoUrl from '../../assets/logo.png'
 
 const iconMap = {
   ShoppingCart, LayoutGrid, BarChart2, Wifi, Settings
@@ -32,7 +33,7 @@ export function Sidebar({ collapsed, onToggle }) {
     >
       {/* Logo area */}
       <div className={`border-b border-border-warm flex items-center drag-region h-12 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
-        <img src="/src/assets/logo.png" alt="feast" className="w-8 h-8 object-contain" />
+        <img src={logoUrl} alt="feast" className="w-8 h-8 object-contain" />
         {!collapsed && (
           <span className="font-bold text-sm text-ink truncate flex-1">feast. Desk</span>
         )}

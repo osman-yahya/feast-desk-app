@@ -1,7 +1,8 @@
 {
   "name": "feast-desk",
+  "productName": "feast. Desk",
   "version": "1.0.0",
-  "description": "feast.  Desk — Restaurant POS & Billing",
+  "description": "feast. Desk — Restaurant POS & Billing",
   "main": "out/main/index.js",
   "author": "feast. ",
   "license": "UNLICENSED",
