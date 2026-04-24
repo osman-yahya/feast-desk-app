@@ -5,6 +5,7 @@ module.exports = {
   appId: 'tr.feast.desk',
   productName: 'feast. Desk',
   copyright: 'Copyright © 2026 feast. ',
+  icon: 'resources/icon.ico',
   directories: {
     buildResources: 'resources',
     output: 'dist'
@@ -34,10 +35,12 @@ module.exports = {
   },
   nsis: {
     oneClick: false,
-    allowDirChange: true,
+    allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'feast. Desk'
+    shortcutName: 'feast. Desk',
+    installerIcon: 'resources/icon.ico',
+    uninstallerIcon: 'resources/icon.ico'
   },
   publish: {
     provider: 'github',

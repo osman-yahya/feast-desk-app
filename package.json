@@ -11,9 +11,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "package": "electron-vite build && electron-builder",
+    "package": "electron-vite build && electron-builder --config electron-builder.config.js",
     "publish": "dotenv -e .env -- npm run publish:run",
-    "publish:run": "electron-vite build && electron-builder --publish always",
+    "publish:run": "electron-vite build && electron-builder --config electron-builder.config.js --publish always",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
