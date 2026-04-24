@@ -362,6 +362,8 @@
     "redAfter": "Red after",
     "autoDoneAfter": "Auto-done after",
     "timerProgression": "Green → Amber (between green & red) → Red → Blinking → Auto-done",
+    "directOrderTTL": "Direct Order Kitchen TTL",
+    "directOrderTTLSub": "How long a paid direct order stays visible in the kitchen view for preparation",
 
     "passwordProtection": "Password Protection",
     "passwordSub": "When set, a password is required to access Settings, Analytics, and Server",
@@ -397,6 +399,13 @@
     "refreshTitle": "Refresh Menu Data",
     "refreshHint": "Enter your connection code to refresh the cached menu data.",
     "refreshPlaceholder": "e.g. 12345-ABC123"
+  },
+
+  "update": {
+    "downloading": "Downloading update... {{percent}}%",
+    "ready": "Version {{version}} is ready!",
+    "restart": "Restart Now",
+    "later": "Later"
   },
 
   "passwordGate": {

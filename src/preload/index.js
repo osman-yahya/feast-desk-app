@@ -58,6 +58,10 @@ contextBridge.exposeInMainWorld('feastAPI', {
     qr:     () => invoke('server:qr')
   },
 
+  update: {
+    install: () => invoke('update:install')
+  },
+
   settings: {
     get:           (key)   => invoke('settings:get', key),
     set:           (k, v)  => invoke('settings:set', k, v),
@@ -74,7 +78,7 @@ contextBridge.exposeInMainWorld('feastAPI', {
 
   // Push events from main → renderer
   on: (channel, callback) => {
-    const allowed = ['cache:stale', 'server:message']
+    const allowed = ['cache:stale', 'server:message', 'update:available', 'update:progress', 'update:downloaded']
     if (!allowed.includes(channel)) return
     const wrapped = (_, ...args) => callback(...args)
     ipcRenderer.on(channel, wrapped)

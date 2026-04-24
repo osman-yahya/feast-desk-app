@@ -30,9 +30,14 @@ export function checkoutRoutes() {
       const checkout = finalizeCheckout(orderId, paymentMethod || 'cash', pct, cashierNote || null)
 
       // Broadcast to all clients so kitchen + waiters know the order is closed
-      if (order && order.table_id) {
-        const tbl = getDb().prepare('SELECT name FROM tables WHERE id = ?').get(order.table_id)
-        broadcastToAll({ type: 'order:paid', tableId: order.table_id, tableName: tbl?.name || `Table ${order.table_id}`, orderId })
+      if (order) {
+        const tbl = order.table_id ? getDb().prepare('SELECT name FROM tables WHERE id = ?').get(order.table_id) : null
+        if (!order.table_id) {
+          // Direct order: kitchen still needs to prepare — keep visible with TTL
+          broadcastToAll({ type: 'order:direct-paid', orderId, tableName: null })
+        } else {
+          broadcastToAll({ type: 'order:paid', tableId: order.table_id, tableName: tbl?.name || null, orderId })
+        }
       }
 
       res.json({ success: true, checkout })

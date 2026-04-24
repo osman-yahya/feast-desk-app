@@ -14,6 +14,7 @@ export function settingsRoutes() {
         kitchen_timer_green:  parseInt(s.kitchen_timer_green  || '5'),
         kitchen_timer_red:    parseInt(s.kitchen_timer_red    || '20'),
         kitchen_timer_done:   parseInt(s.kitchen_timer_done   || '30'),
+        kitchen_direct_order_ttl: parseInt(s.kitchen_direct_order_ttl || '5'),
         currency_symbol:      s.currency_symbol || '₺',
         language:             s.language || 'en'
       })

@@ -362,6 +362,8 @@
     "redAfter": "Kırmızı süresi",
     "autoDoneAfter": "Otomatik tamamlanma",
     "timerProgression": "Yeşil → Kehribar (yeşil ve kırmızı arası) → Kırmızı → Yanıp Sönen → Otomatik tamamlama",
+    "directOrderTTL": "Kasadan Sipariş Mutfak Süresi",
+    "directOrderTTLSub": "Ödenen kasadan siparişin hazırlık için mutfak ekranında görünme süresi",
 
     "passwordProtection": "Şifre Koruması",
     "passwordSub": "Ayarlandığında, Ayarlar, Analitik ve Sunucu'ya erişmek için şifre gereklidir",
@@ -397,6 +399,13 @@
     "refreshTitle": "Menü Verilerini Yenile",
     "refreshHint": "Önbellekteki menü verilerini yenilemek için bağlantı kodunuzu girin.",
     "refreshPlaceholder": "örn. 12345-ABC123"
+  },
+
+  "update": {
+    "downloading": "Güncelleme indiriliyor... %{{percent}}",
+    "ready": "Sürüm {{version}} hazır!",
+    "restart": "Şimdi Yeniden Başlat",
+    "later": "Daha Sonra"
   },
 
   "passwordGate": {

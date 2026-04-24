@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Sidebar } from './Sidebar.jsx'
 import { TopBar } from './TopBar.jsx'
+import { UpdateBanner } from './UpdateBanner.jsx'
 import { Modal } from '../ui/Modal.jsx'
 import { Button } from '../ui/Button.jsx'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
@@ -55,6 +56,7 @@ export function AppShell() {
       <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
 
       <div className="flex-1 flex flex-col min-w-0">
+        <UpdateBanner />
         <TopBar staleCache={staleCache} onRefreshRequest={() => setShowRefreshModal(true)} />
         <main className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
           <Outlet />

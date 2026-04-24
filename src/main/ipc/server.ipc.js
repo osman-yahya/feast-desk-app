@@ -21,26 +21,42 @@ let cleanupInterval = null
 function runOrderCleanup() {
   try {
     const db = getDb()
+    const now = Date.now()
+
+    // Auto-close stale open orders older than 18 hours (prevents kitchen showing yesterday's orders)
+    const staleCutoff = now - 18 * 60 * 60 * 1000
+    db.prepare("UPDATE orders SET status = 'deleted', closed_at = ?, deleted_at = ? WHERE status = 'open' AND opened_at < ?")
+      .run(now, now, staleCutoff)
+    // Free tables that no longer have active orders
+    db.prepare("UPDATE tables SET status = 'empty' WHERE status = 'occupied' AND id NOT IN (SELECT DISTINCT table_id FROM orders WHERE status IN ('open','checkout_pending') AND table_id IS NOT NULL)")
+      .run()
+
     // Clean up deleted orders and their items after 24 hours
-    const deletedCutoff = Date.now() - 24 * 60 * 60 * 1000
+    const deletedCutoff = now - 24 * 60 * 60 * 1000
     db.prepare(`DELETE FROM order_items WHERE order_id IN (
       SELECT id FROM orders WHERE status = 'deleted' AND closed_at < ?
     )`).run(deletedCutoff)
+    // Clear checkout_id reference before deleting so FK is not violated
+    db.prepare("UPDATE orders SET checkout_id = NULL WHERE status = 'deleted' AND closed_at < ?").run(deletedCutoff)
     db.prepare("DELETE FROM orders WHERE status = 'deleted' AND closed_at < ?").run(deletedCutoff)
 
     // Clean up order_items for paid orders older than 7 days
     // (checkout.items_snapshot preserves the data for analytics)
-    const paidItemsCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const paidItemsCutoff = now - 7 * 24 * 60 * 60 * 1000
     db.prepare(`DELETE FROM order_items WHERE order_id IN (
       SELECT id FROM orders WHERE status = 'paid' AND closed_at < ?
     )`).run(paidItemsCutoff)
 
     // Standard retention: remove old paid orders and checkouts
+    // Delete orders FIRST (they reference checkouts via checkout_id), then checkouts
     const days = parseInt(settingsRepo.get('data_retention_days') || '90', 10)
-    const retentionCutoff = Date.now() - days * 24 * 60 * 60 * 1000
-    db.prepare("DELETE FROM checkouts WHERE paid_at < ?").run(retentionCutoff)
+    const retentionCutoff = now - days * 24 * 60 * 60 * 1000
+    db.prepare("UPDATE orders SET checkout_id = NULL WHERE status = 'paid' AND closed_at < ?").run(retentionCutoff)
     db.prepare("DELETE FROM orders WHERE status = 'paid' AND closed_at < ?").run(retentionCutoff)
-  } catch {}
+    db.prepare("DELETE FROM checkouts WHERE paid_at < ?").run(retentionCutoff)
+  } catch (err) {
+    console.error('Auto-prune failed:', err)
+  }
 }
 
 export function register(ipcMain, getMainWindow) {
