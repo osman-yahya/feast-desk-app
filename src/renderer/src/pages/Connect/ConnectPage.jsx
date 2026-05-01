@@ -1,11 +1,23 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import i18n from 'i18next'
 import { ExternalLink, Wifi, CheckCircle, ArrowRight, Keyboard, Hand, Minimize2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button.jsx'
 import { TouchKeypad } from '../../components/ui/TouchKeypad.jsx'
 import { useRestaurantStore } from '../../store/useRestaurantStore.js'
 import { useSettingsStore } from '../../store/useSettingsStore.js'
 import logoUrl from '../../assets/logo.png'
+
+const LANGUAGES = [
+  { code: 'en', flag: '🇬🇧', short: 'EN' },
+  { code: 'tr', flag: '🇹🇷', short: 'TR' }
+]
+
+function changeLanguage(code) {
+  i18n.changeLanguage(code)
+  localStorage.setItem('feast_language', code)
+  window.feastAPI?.settings?.set?.('language', code)
+}
 
 export function ConnectPage() {
   const { t } = useTranslation()
@@ -14,6 +26,7 @@ export function ConnectPage() {
   const { connect, isLoading, error, isConnected, restaurant } = useRestaurantStore()
   const { uiMode, setUiMode } = useSettingsStore()
   const isTouch = uiMode === 'touch'
+  const currentLang = i18n.language
 
   async function handleConnect(e) {
     e.preventDefault()
@@ -24,11 +37,25 @@ export function ConnectPage() {
     return (
       <div className="h-screen flex items-center justify-center bg-surface-bg">
         <div className="flex flex-col items-center gap-6 max-w-sm text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
-            <CheckCircle size={32} className="text-green-600" />
+          {restaurant.img_local_path ? (
+            <img
+              src={`feast-local://${restaurant.img_local_path}`}
+              alt={restaurant.restaurant_name}
+              className="w-24 h-24 rounded-2xl object-cover bg-gray-100 shadow-card"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-2xl bg-brand-pale flex items-center justify-center shadow-card">
+              <span className="text-brand text-3xl font-black">
+                {restaurant.restaurant_name?.[0] || 'R'}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <CheckCircle size={18} className="text-green-600" />
+            <h1 className="font-bold text-lg text-ink">{restaurant.restaurant_name}</h1>
           </div>
           <div>
-            <h1 className="font-bold text-xl text-ink">{t('connect.connected')}</h1>
+            <p className="font-semibold text-ink">{t('connect.connected')}</p>
             <p className="text-sm text-ink-muted mt-1">{t('connect.redirecting')}</p>
           </div>
         </div>
@@ -66,7 +93,28 @@ export function ConnectPage() {
       </div>
 
       {/* Right connect form */}
-      <div className="flex-1 lg:max-w-md flex flex-col items-center justify-center p-8">
+      <div className="flex-1 lg:max-w-md flex flex-col items-center justify-center p-8 relative">
+        {/* Language switcher */}
+        <div className="absolute top-4 right-4 flex items-center gap-1 bg-white border border-border-warm rounded-pill p-1 shadow-card">
+          {LANGUAGES.map((lang) => {
+            const active = currentLang === lang.code
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => changeLanguage(lang.code)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold transition-all ${
+                  active ? 'bg-brand text-white' : 'text-ink-muted hover:text-ink'
+                }`}
+                title={lang.code === 'en' ? t('settings.english') : t('settings.turkish')}
+              >
+                <span className="text-sm leading-none">{lang.flag}</span>
+                <span>{lang.short}</span>
+              </button>
+            )
+          })}
+        </div>
+
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-2 mb-8">
