@@ -186,18 +186,14 @@ export function getAdvancedStats(fromTs, toTs) {
     : 0
 
   // --- Campaign suggestions ---
+  // `level` is a stable code; the renderer translates it.
   const suggestions = basic.popular_items
     .filter((i) => i.revenue > 0)
     .map((i) => ({
       item: i.name,
       count: i.count,
       avg_revenue: parseFloat((i.revenue / i.count).toFixed(2)),
-      suggestion:
-        i.count < 5
-          ? 'Low frequency — consider promotion'
-          : i.count > 30
-            ? 'High performer — feature prominently'
-            : 'Steady seller'
+      level: i.count < 5 ? 'low' : i.count > 30 ? 'high' : 'steady'
     }))
 
   // --- AI Insights ---
@@ -220,12 +216,16 @@ export function getAdvancedStats(fromTs, toTs) {
 /* ------------------------------------------------------------------ */
 /*  AI Insights Engine                                                 */
 /*  Rule-based analytics labelled as "AI" — no ML, fully deterministic */
+/*                                                                     */
+/*  Each insight is emitted as { type, severity, variant?, data }.     */
+/*  All user-facing strings are translated in the renderer using       */
+/*  these structured fields — server stays language-agnostic.          */
 /* ------------------------------------------------------------------ */
 
 function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
   const insights = []
 
-  // 1. Revenue Trend — compare first half vs second half of the period
+  // 1. Revenue Trend
   if (checkouts.length >= 4) {
     const mid = Math.floor(checkouts.length / 2)
     const firstHalf = checkouts.slice(0, mid).reduce((s, c) => s + c.grand_total, 0)
@@ -236,21 +236,15 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
       const dir = change > 5 ? 'up' : change < -5 ? 'down' : 'stable'
       insights.push({
         type: 'trend',
-        title: dir === 'up' ? 'Revenue Growing' : dir === 'down' ? 'Revenue Declining' : 'Revenue Stable',
+        variant: dir,
         severity: dir === 'down' ? 'warning' : dir === 'up' ? 'success' : 'info',
-        summary:
-          dir === 'up'
-            ? `Revenue increased ${Math.abs(change).toFixed(1)}% in the second half of this period.`
-            : dir === 'down'
-              ? `Revenue decreased ${Math.abs(change).toFixed(1)}% in the second half of this period.`
-              : 'Revenue remained stable throughout this period.',
-        detail: `First half: ₺${firstHalf.toFixed(2)} (${mid} orders) → Second half: ₺${secondHalf.toFixed(2)} (${checkouts.length - mid} orders)`,
-        action:
-          dir === 'down'
-            ? 'Review menu pricing, run promotions, or investigate drops in foot traffic.'
-            : dir === 'up'
-              ? 'Momentum is positive. Consider expanding successful items or testing slight price increases.'
-              : 'Consistent demand. Focus on margin optimization and upselling.'
+        data: {
+          changePct: parseFloat(Math.abs(change).toFixed(1)),
+          firstHalfTotal: parseFloat(firstHalf.toFixed(2)),
+          secondHalfTotal: parseFloat(secondHalf.toFixed(2)),
+          firstHalfCount: mid,
+          secondHalfCount: checkouts.length - mid
+        }
       })
     }
   }
@@ -260,16 +254,19 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
     const totalOrders = byHour.reduce((s, h) => s + h.count, 0)
     const sorted = [...byHour].sort((a, b) => b.count - a.count)
     const peak = sorted.slice(0, 3)
-    const peakPct = totalOrders > 0 ? ((peak.reduce((s, h) => s + h.count, 0) / totalOrders) * 100).toFixed(0) : 0
+    const peakPct = totalOrders > 0
+      ? parseFloat(((peak.reduce((s, h) => s + h.count, 0) / totalOrders) * 100).toFixed(0))
+      : 0
     const dead = sorted.filter((h) => h.count > 0).slice(-3).reverse()
 
     insights.push({
       type: 'peak_hours',
-      title: 'Peak Hour Analysis',
       severity: 'info',
-      summary: `${peakPct}% of orders concentrate in your top 3 hours: ${peak.map((h) => `${String(h.hour).padStart(2, '0')}:00`).join(', ')}.`,
-      detail: peak.map((h) => `${String(h.hour).padStart(2, '0')}:00 — ${h.count} orders, ₺${h.total}`).join('\n'),
-      action: `Ensure full staffing at ${String(peak[0].hour).padStart(2, '0')}:00–${String(peak[0].hour + 1).padStart(2, '0')}:00.${dead.length > 0 ? ` Consider happy-hour deals at ${dead.map((h) => String(h.hour).padStart(2, '0') + ':00').join(', ')} to boost off-peak sales.` : ''}`
+      data: {
+        peakPct,
+        peak: peak.map((h) => ({ hour: h.hour, count: h.count, total: h.total })),
+        dead: dead.map((h) => ({ hour: h.hour, count: h.count, total: h.total }))
+      }
     })
   }
 
@@ -286,31 +283,41 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
     if (stars.length > 0) {
       insights.push({
         type: 'stars',
-        title: 'Star Products',
         severity: 'success',
-        summary: `${stars.length} item(s) lead in both volume and revenue per sale.`,
-        items: stars.map((i) => ({ name: i.name, count: i.count, revenue: i.revenue, avg: parseFloat((i.revenue / i.count).toFixed(2)) })),
-        action: 'Ensure consistent quality and stock. Test slight price increases to grow margin without losing volume.'
+        data: {
+          count: stars.length,
+          items: stars.map((i) => ({
+            name: i.name,
+            count: i.count,
+            revenue: i.revenue,
+            avg: parseFloat((i.revenue / i.count).toFixed(2))
+          }))
+        }
       })
     }
     if (gems.length > 0) {
       insights.push({
         type: 'hidden_gems',
-        title: 'Hidden Gems Detected',
         severity: 'success',
-        summary: `${gems.length} item(s) earn above-average revenue per sale but have low order count.`,
-        items: gems.map((i) => ({ name: i.name, count: i.count, revenue: i.revenue, avg: parseFloat((i.revenue / i.count).toFixed(2)) })),
-        action: 'Promote these on your menu board or via waiter recommendations — they convert well but need visibility.'
+        data: {
+          count: gems.length,
+          items: gems.map((i) => ({
+            name: i.name,
+            count: i.count,
+            revenue: i.revenue,
+            avg: parseFloat((i.revenue / i.count).toFixed(2))
+          }))
+        }
       })
     }
     if (weak.length > 0) {
       insights.push({
         type: 'underperformers',
-        title: 'Underperforming Items',
         severity: 'warning',
-        summary: `${weak.length} item(s) have low orders and below-average revenue.`,
-        items: weak.map((i) => ({ name: i.name, count: i.count, revenue: i.revenue })),
-        action: 'Consider removing, revamping the recipe, or replacing these with better-performing alternatives.'
+        data: {
+          count: weak.length,
+          items: weak.map((i) => ({ name: i.name, count: i.count, revenue: i.revenue }))
+        }
       })
     }
   }
@@ -324,23 +331,22 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
     if (top3Pct > 50) {
       insights.push({
         type: 'concentration',
-        title: 'Revenue Concentration Risk',
+        variant: top3Pct > 70 ? 'high' : 'moderate',
         severity: top3Pct > 70 ? 'warning' : 'info',
-        summary: `Top 3 items account for ${top3Pct.toFixed(0)}% of item revenue.`,
-        detail: basic.popular_items.slice(0, 3).map((i) => `${i.name}: ₺${i.revenue.toFixed(2)}`).join('\n'),
-        action:
-          top3Pct > 70
-            ? 'High dependency — if any top item becomes unavailable, revenue drops significantly. Actively promote mid-tier items.'
-            : 'Moderate concentration. Keep monitoring and nurture variety across the menu.'
+        data: {
+          topPct: parseFloat(top3Pct.toFixed(0)),
+          top3: basic.popular_items.slice(0, 3).map((i) => ({
+            name: i.name,
+            revenue: parseFloat(i.revenue.toFixed(2))
+          }))
+        }
       })
     }
   }
 
   // 5. Day-of-Week Opportunity
   if (byWeekday.length >= 5) {
-    const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    const mapped = byWeekday.map((d) => ({ ...d, name: names[d.day] }))
-    const sorted = [...mapped].sort((a, b) => b.total - a.total)
+    const sorted = [...byWeekday].sort((a, b) => b.total - a.total)
     const best = sorted[0]
     const worst = sorted[sorted.length - 1]
 
@@ -349,11 +355,16 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
       if (gap > 30) {
         insights.push({
           type: 'day_opportunity',
-          title: 'Weekday Opportunity',
           severity: 'info',
-          summary: `${worst.name} generates ${gap.toFixed(0)}% less revenue than ${best.name}.`,
-          detail: `Best: ${best.name} — ₺${best.total} (${best.count} orders)\nWeakest: ${worst.name} — ₺${worst.total} (${worst.count} orders)`,
-          action: `Run ${worst.name}-specific promotions (happy hours, combo deals) to lift traffic on your slowest day.`
+          data: {
+            gapPct: parseFloat(gap.toFixed(0)),
+            bestDay: best.day,
+            worstDay: worst.day,
+            bestTotal: best.total,
+            worstTotal: worst.total,
+            bestCount: best.count,
+            worstCount: worst.count
+          }
         })
       }
     }
@@ -365,15 +376,15 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
     if (viable.length > 0) {
       insights.push({
         type: 'combo',
-        title: 'Combo Menu Opportunities',
         severity: 'success',
-        summary: `${viable.length} item pair(s) are frequently ordered together — combo-deal candidates.`,
-        items: viable.map((p) => ({
-          pair: p.pair,
-          count: p.count,
-          pct: parseFloat(((p.count / checkouts.length) * 100).toFixed(1))
-        })),
-        action: 'Bundle these into combo deals. Combos increase perceived value and average order size.'
+        data: {
+          count: viable.length,
+          pairs: viable.map((p) => ({
+            pair: p.pair,
+            count: p.count,
+            pct: parseFloat(((p.count / checkouts.length) * 100).toFixed(1))
+          }))
+        }
       })
     }
   }
@@ -389,17 +400,16 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
     if (Math.abs(avg - median) > avg * 0.15) {
       insights.push({
         type: 'order_value',
-        title: 'Order Value Skew',
+        variant: avg > median ? 'avg_above' : 'median_above',
         severity: 'info',
-        summary:
-          avg > median
-            ? `Average order (₺${avg.toFixed(2)}) exceeds median (₺${median.toFixed(2)}) — a few large orders inflate the average.`
-            : `Median (₺${median.toFixed(2)}) exceeds average (₺${avg.toFixed(2)}) — many small orders pull the average down.`,
-        detail: `${low} orders below ₺${(avg * 0.5).toFixed(2)} | ${high} orders above ₺${(avg * 1.5).toFixed(2)}`,
-        action:
-          avg > median
-            ? 'Upsell add-ons (sides, drinks, desserts) to raise the typical order size, not just a few big ones.'
-            : 'Order sizes are consistent. Focus on upselling strategies to lift the average ticket.'
+        data: {
+          avg: parseFloat(avg.toFixed(2)),
+          median: parseFloat(median.toFixed(2)),
+          lowCount: low,
+          highCount: high,
+          lowThreshold: parseFloat((avg * 0.5).toFixed(2)),
+          highThreshold: parseFloat((avg * 1.5).toFixed(2))
+        }
       })
     }
   }
@@ -413,14 +423,17 @@ function generateAIInsights(basic, checkouts, byHour, byWeekday, crossProduct) {
     if (topPct > 50) {
       insights.push({
         type: 'category_dominance',
-        title: 'Category Dominance',
+        variant: topPct > 70 ? 'high' : 'moderate',
         severity: topPct > 70 ? 'warning' : 'info',
-        summary: `"${topCat.name}" dominates with ${topPct.toFixed(0)}% of category revenue.`,
-        detail: basic.by_category.slice(0, 5).map((c) => `${c.name}: ₺${c.revenue.toFixed(2)} (${totalCatRev > 0 ? ((c.revenue / totalCatRev) * 100).toFixed(0) : 0}%)`).join('\n'),
-        action:
-          topPct > 70
-            ? 'Over-reliance on one category. Promote other categories with deals or menu placement changes.'
-            : 'One category leads strongly. Consider featuring second-tier categories to diversify revenue.'
+        data: {
+          topName: topCat.name,
+          topPct: parseFloat(topPct.toFixed(0)),
+          breakdown: basic.by_category.slice(0, 5).map((c) => ({
+            name: c.name,
+            revenue: parseFloat(c.revenue.toFixed(2)),
+            pct: totalCatRev > 0 ? parseFloat(((c.revenue / totalCatRev) * 100).toFixed(0)) : 0
+          }))
+        }
       })
     }
   }

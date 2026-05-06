@@ -212,7 +212,97 @@
     "itemsLabel": "Ürünler",
     "recommendedAction": "Önerilen Eylem",
     "allItemsByOrders": "Siparişe Göre Tüm Ürünler",
-    "item": "Ürün"
+    "item": "Ürün",
+    "tabs": {
+      "overview": "Genel Bakış",
+      "trends": "Trendler",
+      "items": "Ürünler",
+      "ai": "Yapay Zeka"
+    },
+    "noData": "Bu dönem için veri yok",
+    "noDataHint": "Siparişler ödendikçe analizler burada görünecek.",
+    "noInsights": "Henüz yapay zeka önerisi yok — sipariş toplamaya devam edin.",
+    "ordersCount": "{{count}} sipariş",
+    "perItem": "{{currency}}{{amount}}/adet",
+    "weekdays": {
+      "sun": "Paz", "mon": "Pzt", "tue": "Sal", "wed": "Çar", "thu": "Per", "fri": "Cum", "sat": "Cmt",
+      "sunFull": "Pazar", "monFull": "Pazartesi", "tueFull": "Salı", "wedFull": "Çarşamba", "thuFull": "Perşembe", "friFull": "Cuma", "satFull": "Cumartesi"
+    },
+    "campaign": {
+      "low": "Düşük frekans — promosyon düşünün",
+      "high": "Yüksek performans — öne çıkarın",
+      "steady": "İstikrarlı satıcı"
+    },
+    "ai": {
+      "trend": {
+        "title_up": "Gelir Artıyor",
+        "title_down": "Gelir Azalıyor",
+        "title_stable": "Gelir Stabil",
+        "summary_up": "Bu dönemin ikinci yarısında gelir %{{pct}} arttı.",
+        "summary_down": "Bu dönemin ikinci yarısında gelir %{{pct}} azaldı.",
+        "summary_stable": "Bu dönem boyunca gelir stabil kaldı.",
+        "detail": "İlk yarı: {{currency}}{{firstHalf}} ({{firstCount}} sipariş) → İkinci yarı: {{currency}}{{secondHalf}} ({{secondCount}} sipariş)",
+        "action_up": "Momentum olumlu. Başarılı ürünleri genişletin veya küçük fiyat artışları test edin.",
+        "action_down": "Menü fiyatlandırmasını gözden geçirin, promosyonlar yapın veya müşteri trafiğindeki düşüşü araştırın.",
+        "action_stable": "Tutarlı talep. Marj optimizasyonuna ve upselling'e odaklanın."
+      },
+      "peak_hours": {
+        "title": "Yoğun Saat Analizi",
+        "summary": "Siparişlerin %{{pct}}'i en yoğun 3 saatte yoğunlaşıyor: {{hours}}.",
+        "action": "{{topRange}} saatlerinde tam personel bulundurun.",
+        "actionWithDead": "{{topRange}} saatlerinde tam personel bulundurun. Yoğun olmayan saatlerde ({{deadHours}}) happy-hour fırsatları sunmayı düşünün."
+      },
+      "stars": {
+        "title": "Yıldız Ürünler",
+        "summary_one": "{{count}} ürün hem hacim hem de satış başına gelirde önde.",
+        "summary_other": "{{count}} ürün hem hacim hem de satış başına gelirde önde.",
+        "action": "Tutarlı kalite ve stok sağlayın. Hacmi kaybetmeden marjı artırmak için küçük fiyat artışları test edin."
+      },
+      "hidden_gems": {
+        "title": "Gizli Cevherler",
+        "summary_one": "{{count}} ürün satış başına ortalamanın üzerinde gelir sağlıyor ancak sipariş sayısı düşük.",
+        "summary_other": "{{count}} ürün satış başına ortalamanın üzerinde gelir sağlıyor ancak sipariş sayısı düşük.",
+        "action": "Bunları menü panonuzda veya garson önerileri yoluyla tanıtın — iyi dönüşüm sağlıyorlar ancak görünürlüğe ihtiyaçları var."
+      },
+      "underperformers": {
+        "title": "Düşük Performanslı Ürünler",
+        "summary_one": "{{count}} ürün düşük siparişe ve ortalamanın altında gelire sahip.",
+        "summary_other": "{{count}} ürün düşük siparişe ve ortalamanın altında gelire sahip.",
+        "action": "Kaldırmayı, tarifi yenilemeyi veya daha iyi performans gösteren alternatiflerle değiştirmeyi düşünün."
+      },
+      "concentration": {
+        "title": "Gelir Yoğunlaşma Riski",
+        "summary": "İlk 3 ürün, ürün gelirinin %{{pct}}'ini oluşturuyor.",
+        "action_high": "Yüksek bağımlılık — herhangi bir üst ürün stokta olmadığında gelir önemli ölçüde düşer. Orta segment ürünleri aktif olarak tanıtın.",
+        "action_moderate": "Orta düzey yoğunlaşma. Takip etmeye devam edin ve menüde çeşitliliği destekleyin."
+      },
+      "day_opportunity": {
+        "title": "Haftanın Günü Fırsatı",
+        "summary": "{{worst}} günü {{best}} gününe göre %{{pct}} daha az gelir sağlıyor.",
+        "detail": "En iyi: {{best}} — {{currency}}{{bestTotal}} ({{bestCount}} sipariş)\nEn zayıf: {{worst}} — {{currency}}{{worstTotal}} ({{worstCount}} sipariş)",
+        "action": "{{worst}} gününe özel promosyonlar (happy hours, kombo fırsatlar) yaparak en yavaş gününüzde trafik yaratın."
+      },
+      "combo": {
+        "title": "Kombo Menü Fırsatları",
+        "summary_one": "{{count}} ürün çifti birlikte sıkça sipariş ediliyor — kombo fırsat adayı.",
+        "summary_other": "{{count}} ürün çifti birlikte sıkça sipariş ediliyor — kombo fırsat adayları.",
+        "action": "Bunları kombo fırsatlar halinde paketleyin. Komboler algılanan değeri ve ortalama sipariş tutarını artırır."
+      },
+      "order_value": {
+        "title": "Sipariş Değeri Sapması",
+        "summary_avg_above": "Ortalama sipariş ({{currency}}{{avg}}) medyanı ({{currency}}{{median}}) aşıyor — birkaç büyük sipariş ortalamayı yukarı çekiyor.",
+        "summary_median_above": "Medyan ({{currency}}{{median}}) ortalamayı ({{currency}}{{avg}}) aşıyor — pek çok küçük sipariş ortalamayı aşağı çekiyor.",
+        "detail": "{{currency}}{{lowThreshold}} altında {{lowCount}} sipariş | {{currency}}{{highThreshold}} üstünde {{highCount}} sipariş",
+        "action_avg_above": "Tipik sipariş tutarını yükseltmek için ek satışlar yapın (yan ürünler, içecekler, tatlılar) — sadece birkaç büyük sipariş yerine.",
+        "action_median_above": "Sipariş tutarları tutarlı. Ortalama bilet tutarını artırmak için upselling stratejilerine odaklanın."
+      },
+      "category_dominance": {
+        "title": "Kategori Hakimiyeti",
+        "summary": "\"{{name}}\" kategori gelirinin %{{pct}}'ine hükmediyor.",
+        "action_high": "Tek kategoriye aşırı bağımlılık. Diğer kategorileri fırsatlar veya menü yerleşim değişiklikleriyle tanıtın.",
+        "action_moderate": "Bir kategori güçlü şekilde önde. Geliri çeşitlendirmek için ikinci kademe kategorileri öne çıkarmayı düşünün."
+      }
+    }
   },
 
   "server": {

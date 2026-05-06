@@ -212,7 +212,97 @@
     "itemsLabel": "Items",
     "recommendedAction": "Recommended Action",
     "allItemsByOrders": "All Items by Orders",
-    "item": "Item"
+    "item": "Item",
+    "tabs": {
+      "overview": "Overview",
+      "trends": "Trends",
+      "items": "Items",
+      "ai": "AI Insights"
+    },
+    "noData": "No data for this period",
+    "noDataHint": "Once orders are paid, analytics will appear here.",
+    "noInsights": "No AI insights yet — keep collecting orders.",
+    "ordersCount": "{{count}} orders",
+    "perItem": "{{currency}}{{amount}}/ea",
+    "weekdays": {
+      "sun": "Sun", "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat",
+      "sunFull": "Sunday", "monFull": "Monday", "tueFull": "Tuesday", "wedFull": "Wednesday", "thuFull": "Thursday", "friFull": "Friday", "satFull": "Saturday"
+    },
+    "campaign": {
+      "low": "Low frequency — consider promotion",
+      "high": "High performer — feature prominently",
+      "steady": "Steady seller"
+    },
+    "ai": {
+      "trend": {
+        "title_up": "Revenue Growing",
+        "title_down": "Revenue Declining",
+        "title_stable": "Revenue Stable",
+        "summary_up": "Revenue increased {{pct}}% in the second half of this period.",
+        "summary_down": "Revenue decreased {{pct}}% in the second half of this period.",
+        "summary_stable": "Revenue remained stable throughout this period.",
+        "detail": "First half: {{currency}}{{firstHalf}} ({{firstCount}} orders) → Second half: {{currency}}{{secondHalf}} ({{secondCount}} orders)",
+        "action_up": "Momentum is positive. Consider expanding successful items or testing slight price increases.",
+        "action_down": "Review menu pricing, run promotions, or investigate drops in foot traffic.",
+        "action_stable": "Consistent demand. Focus on margin optimization and upselling."
+      },
+      "peak_hours": {
+        "title": "Peak Hour Analysis",
+        "summary": "{{pct}}% of orders concentrate in your top 3 hours: {{hours}}.",
+        "action": "Ensure full staffing at {{topRange}}.",
+        "actionWithDead": "Ensure full staffing at {{topRange}}. Consider happy-hour deals at {{deadHours}} to boost off-peak sales."
+      },
+      "stars": {
+        "title": "Star Products",
+        "summary_one": "{{count}} item leads in both volume and revenue per sale.",
+        "summary_other": "{{count}} items lead in both volume and revenue per sale.",
+        "action": "Ensure consistent quality and stock. Test slight price increases to grow margin without losing volume."
+      },
+      "hidden_gems": {
+        "title": "Hidden Gems Detected",
+        "summary_one": "{{count}} item earns above-average revenue per sale but has low order count.",
+        "summary_other": "{{count}} items earn above-average revenue per sale but have low order count.",
+        "action": "Promote these on your menu board or via waiter recommendations — they convert well but need visibility."
+      },
+      "underperformers": {
+        "title": "Underperforming Items",
+        "summary_one": "{{count}} item has low orders and below-average revenue.",
+        "summary_other": "{{count}} items have low orders and below-average revenue.",
+        "action": "Consider removing, revamping the recipe, or replacing these with better-performing alternatives."
+      },
+      "concentration": {
+        "title": "Revenue Concentration Risk",
+        "summary": "Top 3 items account for {{pct}}% of item revenue.",
+        "action_high": "High dependency — if any top item becomes unavailable, revenue drops significantly. Actively promote mid-tier items.",
+        "action_moderate": "Moderate concentration. Keep monitoring and nurture variety across the menu."
+      },
+      "day_opportunity": {
+        "title": "Weekday Opportunity",
+        "summary": "{{worst}} generates {{pct}}% less revenue than {{best}}.",
+        "detail": "Best: {{best}} — {{currency}}{{bestTotal}} ({{bestCount}} orders)\nWeakest: {{worst}} — {{currency}}{{worstTotal}} ({{worstCount}} orders)",
+        "action": "Run {{worst}}-specific promotions (happy hours, combo deals) to lift traffic on your slowest day."
+      },
+      "combo": {
+        "title": "Combo Menu Opportunities",
+        "summary_one": "{{count}} item pair is frequently ordered together — combo-deal candidate.",
+        "summary_other": "{{count}} item pairs are frequently ordered together — combo-deal candidates.",
+        "action": "Bundle these into combo deals. Combos increase perceived value and average order size."
+      },
+      "order_value": {
+        "title": "Order Value Skew",
+        "summary_avg_above": "Average order ({{currency}}{{avg}}) exceeds median ({{currency}}{{median}}) — a few large orders inflate the average.",
+        "summary_median_above": "Median ({{currency}}{{median}}) exceeds average ({{currency}}{{avg}}) — many small orders pull the average down.",
+        "detail": "{{lowCount}} orders below {{currency}}{{lowThreshold}} | {{highCount}} orders above {{currency}}{{highThreshold}}",
+        "action_avg_above": "Upsell add-ons (sides, drinks, desserts) to raise the typical order size, not just a few big ones.",
+        "action_median_above": "Order sizes are consistent. Focus on upselling strategies to lift the average ticket."
+      },
+      "category_dominance": {
+        "title": "Category Dominance",
+        "summary": "\"{{name}}\" dominates with {{pct}}% of category revenue.",
+        "action_high": "Over-reliance on one category. Promote other categories with deals or menu placement changes.",
+        "action_moderate": "One category leads strongly. Consider featuring second-tier categories to diversify revenue."
+      }
+    }
   },
 
   "server": {
