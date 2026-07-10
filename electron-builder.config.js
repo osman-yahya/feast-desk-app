@@ -22,7 +22,7 @@ module.exports = {
   extraResources: [
     {
       from: 'resources/icons',
-      to: 'icons'
+      to: 'icons'asdasdasd
     },
     {
       from: 'src/main/server/public',
